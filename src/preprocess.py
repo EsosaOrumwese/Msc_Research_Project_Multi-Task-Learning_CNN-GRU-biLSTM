@@ -1,0 +1,418 @@
+import pandas as pd
+import numpy as np
+import itertools
+from scipy.interpolate import interp1d
+import torch
+
+
+## basic functions for preprocessing
+def create_sub_segments(data, window_size=112, overlap=0.5):
+      '''Creates sub_segments for each segment (journey) using a specific window_size
+      with overlap'''
+      step_size = int(window_size * (1 - overlap))
+      sub_segments = []
+      for (user, position), user_position_data in data.groupby(['User', 'Position']):
+            sub_segment_id = 1
+            for segment, segment_data in user_position_data.groupby('Segment'):
+                  for start in range(0, len(segment_data) - window_size + 1, step_size):
+                        end = start + window_size
+                        sub_segment = segment_data.iloc[start:end].copy()
+                        sub_segment['Sub_Segment'] = sub_segment_id
+                        sub_segments.append(sub_segment)
+                        sub_segment_id += 1
+      return pd.concat(sub_segments).reset_index(drop=True)
+
+
+class LSTM_featureExtractor:
+      '''Feature extractor for biLSTM model'''
+      def __init__(self, subbed_data, num_features=6, window=112):
+            self.subbed_data = subbed_data
+            self.num_features = num_features
+            self.window = window
+            self.num_samples = len(subbed_data) // window
+            self.lstm_features = np.empty((self.num_samples, window, num_features))
+            self.lstm_labels = np.empty(self.num_samples)
+
+      def feature_extractor(self, start=0):
+            '''Extracts 112 sequence for each 6 features (inputs) for the biLSTM model.
+            There is no explicit overlap applied here as the subbed_data already has
+            50% overlap is implicity applied on it.'''
+
+
+            for i in range(self.num_samples):
+                  end = start + self.window
+                  chunk = self.subbed_data.iloc[start:end, :]
+
+                  # Extract features
+                  self.lstm_features[i, :, 0] = chunk['acceleration_x'].values    # acceleration_x
+                  self.lstm_features[i, :, 1] = chunk['acceleration_y'].values    # acceleration_y
+                  self.lstm_features[i, :, 2] = chunk['acceleration_z'].values    # acceleration_z
+                  self.lstm_features[i, :, 3] = chunk['gyroscope_x'].values       # gyroscope_x
+                  self.lstm_features[i, :, 4] = chunk['gyroscope_y'].values       # gyroscope_y
+                  self.lstm_features[i, :, 5] = chunk['gyroscope_z'].values       # gyroscope_z
+
+                  # Extract label (assuming one label per chunk)
+                  lab_list = np.unique(chunk['Coarse_label'].values)
+                  if len(lab_list) == 1:
+                        self.lstm_labels[i] = lab_list[0]
+                  else:
+                        # Handle case where there are multiple labels in a chunk
+                        self.lstm_labels[i] = lab_list[0]  # or some other strategy to resolve conflicts
+
+                  start = end
+
+            return self.lstm_features, self.lstm_labels
+      
+
+class Long_Tranv_Angvel_from_Quarternions:
+      '''Gets the longutinal acceleration and transverse acceleration from quaternions. Angular
+      velocity is gotten from the gyroscope measurements'''
+
+      def __init__(self) -> None:
+            pass
+
+      def euler_from_quaternions(self, q):
+            '''
+            Gets the Euler angles (roll, pitch and yaw) from quaternions using (ZYX notation)
+            Input:
+            q: Array which contains orientation coordinates w, x, y, z which corresponds to (q0, q1, q2, q3)
+            Output:
+            roll, pitch, and yaw in degrees
+            '''
+            q0, q1, q2, q3 = q
+
+            # Roll (x-axis rotation)
+            roll = np.arctan2(2 * (q1 * q0 + q2 * q3), q0**2 - q1**2 - q2**2 + q3**2)
+
+            # Pitch (y-axis rotation)
+            pitch = -np.arcsin(2 * (q1 * q3 - q2 * q0))
+
+            # Yaw (z-axis rotation)
+            yaw = np.arctan2(2 * (q3 * q0 + q1 * q2), q0**2 + q1**2 - q2**2 - q3**2)
+
+            return np.degrees(roll), np.degrees(pitch), np.degrees(yaw)
+      
+      def get_rot_from_euler(self, sub_segment):
+            '''Derives the rotation matrix given the euler angles'''
+            roll_pitch_yaw_df = sub_segment.apply(self.euler_from_quaternions, axis=1, result_type='expand')
+            roll, pitch, yaw = roll_pitch_yaw_df.median()
+            
+            # rotation matrix
+            R = np.array([
+                        [(np.cos(pitch)* np.cos(yaw)), (np.cos(pitch) * np.sin(yaw)), -np.sin(pitch)],
+                        [((np.sin(roll)*np.sin(pitch)*np.cos(yaw)) - (np.cos(roll)*np.sin(yaw))), ((np.sin(roll)*np.sin(pitch)*np.sin(yaw)) + (np.cos(roll) * np.cos(yaw))), (np.sin(roll) * np.cos(pitch))],
+                        [((np.cos(roll)*np.sin(pitch)*np.cos(yaw)) + (np.sin(roll)*np.sin(yaw))), ((np.cos(roll)*np.sin(pitch)*np.sin(yaw)) - (np.sin(roll) * np.cos(yaw))), (np.cos(roll) * np.cos(pitch))]
+                        ])
+
+            return R
+            
+      def quaternion_to_rotation_matrix_zyx(self, q):
+            '''
+            Get rotation matrix (ZYX notation) from quaternion
+            Input:
+            q: Array which contains orientation coordinates w, x, y, z which corresponds to (q0, q1, q2, q3)
+            Output:
+            rotation matrix (ZYX notation), numpy array
+            '''
+            q0, q1, q2, q3 = q
+
+            # rotation matrix
+            R = np.array([
+                        [(q0**2 + q1**2 - q2**2 - q3**2), 2*(q0*q3 + q1*q2), 2*(q1*q3 - q0*q2)],
+                        [2*(q1*q2 - q3*q0), (q0**2 - q1**2 + q2**2 - q3**2), 2*(q0*q1 + q2*q3)],
+                        [2*(q0*q2 + q1*q3), 2*(q2*q3 - q0*q1), (q0**2 - q1**2 - q2**2 + q3**2)]
+                        ])
+
+            return R
+
+      def get_rotation_matrix_sub_segment(self, sub_segment):
+            '''
+            For each sub_segment or sub_journey, we estimate the median quaternion and use it to create our rotation matrix
+            Input:
+                  sub_segment: Array containing orientation coordinates w, x, y, z for sub_segment. Expected shape
+                              is (len(sub_segment), 4)
+            Output:
+                  rotation matrix (ZYX notation). numpy array
+            '''
+            q = sub_segment.median()
+
+            R = self.quaternion_to_rotation_matrix_zyx(q)
+
+            return R
+      
+      def rotate_acc_to_global_coord(self, data, window=None):
+            '''
+            Takes the dataset and for each sub_segment, it get's the rotation matrix (using the orientation sensor data), 
+            to rotate the accelerometer triaxal data to the global coordinates. Now works with all coarse_labels
+            Input:
+                  data: dataframe with appropriate labels
+                  window: the number of datapoints in each sub-segment
+            Output:
+                  dataframe with appended columns (longitudinal acceleration, transversal acceleration corresponding to a'_x, a'_y)
+            '''
+            if window is None:
+                  window = data.groupby(['User', 'Position', 'Sub_Segment']).count()['Coarse_label'].unique()[0]
+            
+            ### The idea here is to halve the window (128) to 64 so as to adhere to info above;
+            window = int(window/2)
+
+            # get idx of columns in df
+            cols = ['acceleration_x', 'acceleration_y', 'acceleration_z',
+                  'orientation_w', 'orientation_x', 'orientation_y', 'orientation_z']
+            col_idx = [data.columns.get_loc(col) for col in cols]
+
+            start = 0
+            for i in range(0, int(len(data)/window), 1):
+                  end = start + window
+                  chunk = data.iloc[start:end, col_idx].copy() # gives me the needed columns
+
+                  # get rotation matrix and rotate acc vals to global coord
+                  R = self.get_rot_from_euler(chunk.iloc[:,3:]) # sends in only the orientation data and results in rotation matrix
+                  long_acc, tranv_acc = (chunk.iloc[:,:3] @ R)[0], (chunk.iloc[:,:3] @ R)[1]
+
+                  # attach values to df
+                  repl_idx_long = data.columns.get_loc('long_acc')
+                  repl_idx_tranv = data.columns.get_loc('tranv_acc')
+                  data.iloc[start:end, repl_idx_long] = long_acc
+                  data.iloc[start:end, repl_idx_tranv] = tranv_acc
+
+                  del chunk, long_acc, tranv_acc
+                  start = end
+
+            return data
+
+      def get_angular_vel_from_gyr(self, data):
+            '''
+            Takes the dataset and get's the angular velocity which corresponds to the square root of the sum of the
+            squared gyroscope measurements. Edited from working with just coarse_lavel==5.0 to all
+            Input:
+                  dataframe with appropriate labels
+            Output:
+                  dataframe with appended columns (ang_vel)
+            '''
+            # get idx of columns in df
+            cols = ['gyroscope_x', 'gyroscope_y', 'gyroscope_z']
+            #col_idx = [data.columns.get_loc(col) for col in cols]
+            
+            # simply the sqrt of the sum of the squared gyro measurements
+            ang_vel = np.sqrt(np.sum(data[cols]**2, axis=1))
+            data['ang_vel'] = ang_vel
+
+            return data
+      
+      def add_transf_cols(self, data):
+            '''Add empty columns to data'''
+            data['long_acc'] = 0.0#np.nan
+            data['tranv_acc'] = 0.0#np.nan
+            data['ang_vel'] = 0.0#np.nan
+
+            return data
+      
+
+class Prep_data_for_CNN:
+      '''Prepare data for training with CNN'''
+      def __init__(self) -> None:
+            pass
+
+      def combine_sequences(self, data):
+            '''Combine sub_segments into *segments for each journey. Where journey is defined as a trip for 
+            each user at each segment for each position.
+
+            *segments here doesn't represent the original segment since the data was already
+            windowed down with overlap previously.
+            '''
+            combined_sequences = {}
+            users = data['User'].unique()
+            positions = data['Position'].unique()
+
+            # iterate through each combination of user and positions
+            for user, position in itertools.product(users, positions):
+                  coarse_labels = data.query("User == @user & Position==@position")['Coarse_label'].unique()
+                  for coarse_label in coarse_labels:
+                        # subset data
+                        user_data = data.query("User == @user & Position==@position & Coarse_label==@coarse_label")
+                        segments = user_data['Segment'].unique()
+                        # extract all required data for each segment
+                        for segment in segments:
+                              segment_data = user_data.query("Segment == @segment")
+                              long_acc = segment_data['long_acc'].values
+                              tranv_acc = segment_data['tranv_acc'].values
+                              ang_vel = segment_data['ang_vel'].values
+                              
+                              combined_sequences[(user, position, coarse_label, segment)] = {   
+                                    'long_acc': long_acc,
+                                    'tranv_acc': tranv_acc,
+                                    'ang_vel': ang_vel
+                                    }
+            
+            return combined_sequences
+
+      def interpolate_to_length(self, array, target_length):
+            '''Interpolate arrays that are smaller than the specificied window_size'''
+            x = np.linspace(0, len(array) - 1, num=len(array))
+            f = interp1d(x, array, kind='linear')
+            x_new = np.linspace(0, len(array) - 1, num=target_length)
+            interpolated_array = f(x_new)
+            return interpolated_array
+
+      def create_windows(self, data, window_size, overlap):
+            '''Given window_size and overlap, it creates windows of data'''
+            stride = int(window_size * (1 - overlap))
+            num_windows = (len(data) - window_size) // stride + 1
+            windows = np.array([data[i*stride:i*stride+window_size] for i in range(num_windows)])
+            
+            if len(windows) == 0:
+                  # occurs in cases when num_windows == 0 or -1 because len(data) <= window_size
+                  return np.array([self.interpolate_to_length(data, window_size)])
+            
+            # Check if the last window covers the end of the array by index
+            last_window_end_index = (num_windows - 1) * stride + window_size - 1
+            if last_window_end_index < len(data) - 1:
+                  last_start_index = len(data) - window_size
+                  last_window = data[last_start_index:]
+                  if len(last_window) < window_size:
+                        last_window = self.interpolate_to_length(last_window, window_size)
+                  windows = list(windows)
+                  windows.append(last_window)
+            
+            return np.array(windows)
+      
+      def get_windowed_df(self, data, window_size=224, overlap=0.25):
+            '''Creates a dataframe which contains each *segment sequentially divided into windows of a specific length'''
+            windowed_data = []
+            combined_sequences = self.combine_sequences(data)
+            
+            #c=0
+            for (user, position, coarse_label, segment), signals in combined_sequences.items():
+                  long_windows = self.create_windows(signals['long_acc'], window_size, overlap)
+                  tranv_windows = self.create_windows(signals['tranv_acc'], window_size, overlap)
+                  ang_vel_windows = self.create_windows(signals['ang_vel'], window_size, overlap)
+
+                  for i in range(long_windows.shape[0]):
+                        windowed_data.append({
+                              'user': user,
+                              'coarse_label':coarse_label,
+                              'segment': segment,
+                              'position': position,
+                              'window_index': i,#+c,
+                              'long_acc_window': long_windows[i],
+                              'tranv_acc_window': tranv_windows[i],
+                              'ang_vel_window': ang_vel_windows[i]
+                        })
+
+
+            return pd.DataFrame(windowed_data)
+      
+      def prep_input_for_CNN(self, windowed_df):
+            '''Prepares the windowed_df for training and testing with CNN. Returns
+            X, y (encoded) and unique values'''
+            X = []
+            y = []
+
+            for index, row in windowed_df.iterrows():
+                  long_acc_window = row['long_acc_window']
+                  tranv_acc_window = row['tranv_acc_window']
+                  ang_vel_window = row['ang_vel_window']
+                  combined_window = np.stack([long_acc_window, tranv_acc_window, ang_vel_window], axis=0)
+                  X.append(combined_window)
+                  y.append(row['user'])
+
+            X = np.array(X)
+            y_lab = np.array(y)
+            uniq, y = np.unique(y_lab, return_inverse=True)
+            return X, y, uniq
+      
+
+class FeatureMaps_extractor:
+      def __init__(self) -> None:
+            pass
+
+      # Function to extract feature map
+      def get_feature_map(self, model, x_batch):
+            # Place model in evaluation mode
+            model.eval()
+            
+            # Hook to store the feature map
+            feature_maps = []
+
+            # Define a hook function to capture the feature map
+            def hook(module, input, output):
+                  feature_maps.append(output.detach().cpu().numpy())
+
+            # Register the hook to the desired layer
+            hook_handle = model.conv2.register_forward_hook(hook)
+
+            try:
+                  # Run the data through the model to trigger the hook
+                  with torch.no_grad():
+                        model(x_batch)
+            finally:
+                  # Remove the hook after feature extraction
+                  hook_handle.remove()
+
+            return feature_maps[0]
+
+
+      def feature_map_extractor(self, model, dataloader, device):
+            '''Extracts the feature maps from the model and returns it as well as the corresponding labels'''
+            feature_maps_list = []
+            y_lab = []
+
+            for x_batch, y_batch in dataloader:
+                  x_batch = x_batch.to(device)
+                  f_maps = self.get_feature_map(model, x_batch)
+                  
+                  # Append feature maps and labels
+                  feature_maps_list.append(f_maps)
+                  y_lab.append(y_batch.numpy())
+
+            # Concatenate all feature maps and labels into single arrays
+            feature_maps_array = np.concatenate(feature_maps_list, axis=0)
+            y_lab_array = np.concatenate(y_lab, axis=0)
+
+            return feature_maps_array, y_lab_array
+      
+      def combine_feature_maps(self, feature_maps, labels, train_flags, save_arr=False):
+            """
+            Combines feature maps from different modalities into a single 3-channel input tensor.
+
+            Args:
+            - feature_maps (dict): Dictionary containing feature maps for 'long', 'tranv', and 'angvel'.
+            - labels (dict): Dictionary containing labels for 'long', 'tranv', and 'angvel'.
+
+            Returns:
+            - combined_maps (np.ndarray): Combined feature maps with shape (N, 3, 224, 224).
+            - combined_labels (np.ndarray): Combined labels.
+            """
+            # Ensure that the feature maps have the same number of samples
+            assert feature_maps['long'].shape[0] == feature_maps['tranv'].shape[0] == feature_maps['angvel'].shape[0], \
+                  "Feature maps must have the same number of samples."
+
+            # Ensure that the labels are the same for all feature maps
+            assert np.array_equal(labels['long'], labels['tranv']) and np.array_equal(labels['long'], labels['angvel']), \
+                  "Labels must be the same for all feature maps."
+
+            # Extract feature maps
+            long_maps = feature_maps['long']
+            tranv_maps = feature_maps['tranv']
+            angvel_maps = feature_maps['angvel']
+
+            # Reshape the feature maps to remove the single dimension (1) in the middle
+            long_maps = long_maps.squeeze(2)  # Shape: (N, 224, 224)
+            tranv_maps = tranv_maps.squeeze(2)  # Shape: (N, 224, 224)
+            angvel_maps = angvel_maps.squeeze(2)  # Shape: (N, 224, 224)
+
+            # Stack the feature maps along the channel dimension
+            combined_maps = np.stack((long_maps, tranv_maps, angvel_maps), axis=1)  # Shape: (N, 3, 224, 224)
+
+            # Extract labels (all labels are the same, so we can use any)
+            combined_labels = labels['long']
+
+            if save_arr:
+                  np.save('./data/feature_maps_labels/full_feature_maps.npy',
+                        combined_maps)
+                  np.save('./data/feature_maps_labels/full_labels.npy',
+                        combined_labels)
+
+
+            return combined_maps, combined_labels
