@@ -200,6 +200,15 @@ class Long_Tranv_Angvel_from_Quarternions:
 
             return data
       
+      def get_long_tranv_angl(self, data):
+            '''Gets the longitudinal acc, tranversal acc and angular velocity for entire dataset'''
+            #idx = data.query('Coarse_label == 5.0').index
+
+            modified_data = self.get_angular_vel_from_gyr(self.rotate_acc_to_global_coord(data))#.loc[idx, :]))
+            data = modified_data
+
+            return data
+      
       def add_transf_cols(self, data):
             '''Add empty columns to data'''
             data['long_acc'] = 0.0#np.nan
@@ -277,6 +286,24 @@ class Prep_data_for_CNN:
             
             return np.array(windows)
       
+      def get_interpolated_sections(self, subbed_data, windowed_df):
+            '''Iterates over the data to see which of the sections have been interpolated'''
+            users = windowed_df.user.unique()
+            positions = windowed_df.position.unique()
+            sections_interpltd = []
+
+            for user, position in itertools.product(users, positions):
+                  segments = subbed_data.query('User==@user & Position==@position').Segment.unique()
+                  for segment in segments:
+                        a = len(subbed_data.query('User==@user & Segment==@segment & Position==@position'))
+                        b = len(windowed_df.query("user==@user & segment==@segment & position==@position"))
+
+                        if a/224 != b:
+                              sections_interpltd.append((user, position, segment))
+            
+            return sections_interpltd
+
+      
       def get_windowed_df(self, data, window_size=224, overlap=0.25):
             '''Creates a dataframe which contains each *segment sequentially divided into windows of a specific length'''
             windowed_data = []
@@ -321,6 +348,84 @@ class Prep_data_for_CNN:
             y_lab = np.array(y)
             uniq, y = np.unique(y_lab, return_inverse=True)
             return X, y, uniq
+      
+
+      ## Function for getting window_df from data_dir
+      def get_window_df_from_dir(self, data_dir, window_size=224, overlap=0, prep_for_FMAPextract=False):
+            '''Given data directory for the sub-segmented dataset, it returns the windowed_df
+            used to derive data for training the SimpleCNN 1d-2D mapper'''
+
+            # read data
+            subbed_data = pd.read_csv(data_dir)
+
+            # add long_acc, tranv_acc and ang_vel to columns
+            subbed_data = Long_Tranv_Angvel_from_Quarternions().add_transf_cols(subbed_data)
+            subbed_data = Long_Tranv_Angvel_from_Quarternions().get_long_tranv_angl(subbed_data)
+
+            windowed_df = self.get_windowed_df(subbed_data, window_size, overlap)
+
+            # change other labels to `Not_driving`  (a dummy label)
+            windowed_df['user_act'] = windowed_df['user'].values
+            idx_users = windowed_df.query('coarse_label == 5.0').index
+            df_with_drivers = windowed_df.index.isin(idx_users)
+            windowed_df.loc[~df_with_drivers, 'user'] = 'Not_driving'
+
+            if prep_for_FMAPextract == True:
+                  sections_interpltd = self.get_interpolated_sections(subbed_data, windowed_df)
+                  windowed_df['Interp_Flag'] = 0
+
+                  for (user, position, segment) in sections_interpltd:
+                        # notice above that segments for each position are unique so we don't really need coarse_label
+                        # since full_windowed_df doesn't have one
+                        idx = windowed_df.query("user==@user & position==@position & segment==@segment").index
+                        windowed_df.loc[idx[-1], 'Interp_Flag'] = 1
+
+                  # Filter out rows where Interp_Flag == 1
+                  to_duplicate = windowed_df[windowed_df['Interp_Flag'] != 1].copy()
+
+                  # Concatenate the original DataFrame with the duplicated rows
+                  windowed_df = pd.concat([windowed_df, to_duplicate]).sort_index(kind='mergesort').reset_index(drop=True)  
+
+                  # adding duplicate flag to df
+                  windowed_df['Dupl_Flag'] = 0
+                  flag = [0, 1] * (len(windowed_df.query('Interp_Flag == 0'))//2)
+                  idx = windowed_df.query('Interp_Flag == 0').index
+
+                  windowed_df.loc[idx, 'Dupl_Flag'] = flag
+
+                  # add train_flag where interp==1 or interp==0 and dupl_flag=0
+                  windowed_df['Train_Flag'] = 0
+                  idx = windowed_df.query('(Interp_Flag == 1) | (Interp_Flag == 0 & Dupl_Flag==0)').index
+
+                  windowed_df.loc[idx, 'Train_Flag'] = 1
+
+                  users = windowed_df.user.unique()
+                  positions = windowed_df.position.unique()
+                  sections = []
+
+                  for user, position in itertools.product(users, positions):
+                        segments = windowed_df.query('user==@user & position==@position').segment.unique()
+                        for segment in segments:
+                              sections.append((user, position, segment))
+
+                  ## turn off the flags all other sections
+                  idx_keep = []
+                  for (user, position, segment) in sections:
+                        idx_keep.extend(windowed_df.query('user==@user & position==@position & segment==@segment').index)
+
+                  # select the rows that aren't driving data
+                  idx_flip = windowed_df.index[~windowed_df.index.isin(idx_keep)]
+
+                  # flip them to 0 so that they don't train
+                  windowed_df.loc[idx_flip, 'Train_Flag'] = 0
+
+                  # for storing the actual user labels
+                  windowed_df['user_act'] = windowed_df['user'].values
+                  idx_users = windowed_df.query('coarse_label == 5.0').index
+                  df_with_drivers = windowed_df.index.isin(idx_users)
+                  windowed_df.loc[~df_with_drivers, 'user'] = 'Not_driving'
+
+            return windowed_df
       
 
 class FeatureMaps_extractor:
