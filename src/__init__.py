@@ -4,6 +4,7 @@ from .engine import *
 from .model_driverID import *
 from .model_transportMode import *
 from .model_multitask import *
+from .model_simpleCNN import *
 from .plot import *
 from .preprocess import *
 from .utils import *

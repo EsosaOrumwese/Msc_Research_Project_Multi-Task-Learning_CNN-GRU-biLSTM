@@ -1,5 +1,27 @@
 ## File contains the different dataset classes for the different problems
 from torch.utils.data import Dataset
+import torch
+
+
+## Dataset for simple cnn
+class SignalsDataset(Dataset):
+      def __init__(self, data, labels, feature_index):
+            """
+            Args:
+                  data (numpy.ndarray): The input data of shape (num_samples, num_features, window_size).
+                  labels (numpy.ndarray): The labels for the data of shape (num_samples,).
+                  feature_index (int): Index of the feature to use.
+            """
+            self.data = data[:, feature_index, :]  # Select the specified feature
+            self.labels = labels
+
+      def __len__(self):
+            return len(self.data)
+
+      def __getitem__(self, idx):
+            x = torch.tensor(self.data[idx], dtype=torch.float32).unsqueeze(0)  # Add channel dimension
+            y = torch.tensor(self.labels[idx], dtype=torch.long)
+            return x, y
 
 
 ## Dataset class for biLSTM model
