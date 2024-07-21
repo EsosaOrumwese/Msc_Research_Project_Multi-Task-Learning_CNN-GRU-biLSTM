@@ -40,10 +40,10 @@ class simpleCNN_engine:
                   loss.backward()
                   self.optimizer.step()
                   
-                  running_train_loss += loss.item().cpu().numpy()
+                  running_train_loss += loss.item()#.cpu().numpy()
                   _, predicted = torch.max(outputs, 1)
-                  correct_train += (predicted == labels).sum().item().cpu().numpy()
-                  total_train += labels.size(0).cpu().numpy()
+                  correct_train += (predicted == labels).sum().item()#.cpu().numpy()
+                  total_train += labels.size(0)#.cpu().numpy()
 
             train_loss = running_train_loss / len(train_loader)
             train_accuracy = 100 * correct_train / total_train
@@ -61,10 +61,10 @@ class simpleCNN_engine:
                         inputs, labels = inputs.to(self.device), labels.to(self.device)
                         outputs = self.model(inputs)
                         loss = self.criterion(outputs, labels.long())
-                        running_val_loss += loss.item().cpu().numpy()
+                        running_val_loss += loss.item()#.cpu().numpy()
                         _, predicted = torch.max(outputs, 1)
-                        correct_val += (predicted == labels).sum().item().cpu().numpy()
-                        total_val += labels.size(0).cpu().numpy()
+                        correct_val += (predicted == labels).sum().item()#.cpu().numpy()
+                        total_val += labels.size(0)#.cpu().numpy()
 
             val_loss = running_val_loss / len(val_loader)
             val_accuracy = 100 * correct_val / total_val
@@ -114,8 +114,8 @@ class simpleCNN_engine:
                         inputs, labels = inputs.to(self.device), labels.to(self.device)
                         outputs = self.model(inputs)
                         _, predicted = torch.max(outputs, 1)
-                        correct_test += (predicted == labels).sum().item().cpu().numpy()
-                        total_test += labels.size(0).cpu().numpy()
+                        correct_test += (predicted == labels).sum().item()#.cpu().numpy()
+                        total_test += labels.size(0)#.cpu().numpy()
 
             test_accuracy = correct_test / total_test
             print(f'Test Accuracy: {test_accuracy}')
@@ -199,10 +199,10 @@ class biLSTM_engine:
                   loss.backward()
                   self.optimizer.step()
 
-                  running_loss += loss.item().cpu().numpy()
+                  running_loss += loss.item()#.cpu().numpy()
                   predicted = torch.sigmoid(outputs) > 0.5
-                  total += labels.size(0).cpu().numpy()
-                  correct += (predicted == labels).sum().item().cpu().numpy()
+                  total += labels.size(0)#.cpu().numpy()
+                  correct += (predicted == labels).sum().item()#.cpu().numpy()
 
             train_loss = running_loss / len(train_loader)
             train_accuracy = 100 * correct / total
@@ -220,10 +220,10 @@ class biLSTM_engine:
                         features, labels = features.to(self.device), labels.to(self.device)
                         outputs = self.model(features).squeeze()
                         loss = self.criterion(outputs, labels.float())
-                        val_loss += loss.item().cpu().numpy()
+                        val_loss += loss.item()#.cpu().numpy()
                         predicted = torch.sigmoid(outputs) > 0.5
-                        total += labels.size(0).cpu().numpy()
-                        correct += (predicted == labels).sum().item().cpu().numpy()
+                        total += labels.size(0)#.cpu().numpy()
+                        correct += (predicted == labels).sum().item()#.cpu().numpy()
 
             val_loss /= len(val_loader)
             val_accuracy = 100 * correct / total
@@ -274,10 +274,10 @@ class biLSTM_engine:
                         features, labels = features.to(self.device), labels.to(self.device)
                         outputs = self.model(features).squeeze()
                         loss = self.criterion(outputs, labels.float())
-                        test_loss += loss.item().cpu().numpy()
+                        test_loss += loss.item()#.cpu().numpy()
                         predicted = torch.sigmoid(outputs) > 0.5
-                        total += labels.size(0).cpu().numpy()
-                        correct += (predicted == labels).sum().item().cpu().numpy()
+                        total += labels.size(0)#.cpu().numpy()
+                        correct += (predicted == labels).sum().item()#.cpu().numpy()
 
             test_loss /= len(test_loader)
             test_accuracy = 100 * correct / total
@@ -321,10 +321,10 @@ class ResNet50_GRU_engine:
                   loss.backward()
                   self.optimizer.step()
                   
-                  running_train_loss += loss.item().cpu().numpy()
+                  running_train_loss += loss.item()#.cpu().numpy()
                   _, predicted = torch.max(outputs, 1)
-                  correct_train += (predicted == labels).sum().item().cpu().numpy()
-                  total_train += labels.size(0).cpu().numpy()
+                  correct_train += (predicted == labels).sum().item()#.cpu().numpy()
+                  total_train += labels.size(0)#.cpu().numpy()
 
             train_loss = running_train_loss / len(train_loader)
             train_accuracy = 100 * correct_train / total_train
@@ -342,10 +342,10 @@ class ResNet50_GRU_engine:
                         inputs, labels = inputs.to(self.device), labels.to(self.device)
                         outputs = self.model(inputs)
                         loss = self.criterion(outputs, labels.long())
-                        running_val_loss += loss.item().cpu().numpy()
+                        running_val_loss += loss.item()#.cpu().numpy()
                         _, predicted = torch.max(outputs, 1)
-                        correct_val += (predicted == labels).sum().item().cpu().numpy()
-                        total_val += labels.size(0).cpu().numpy()
+                        correct_val += (predicted == labels).sum().item()#.cpu().numpy()
+                        total_val += labels.size(0)#.cpu().numpy()
 
             val_loss = running_val_loss / len(val_loader)
             val_accuracy = 100 * correct_val / total_val
@@ -395,8 +395,8 @@ class ResNet50_GRU_engine:
                         inputs, labels = inputs.to(self.device), labels.to(self.device)
                         outputs = self.model(inputs)
                         _, predicted = torch.max(outputs, 1)
-                        correct_test += (predicted == labels).sum().item().cpu().numpy()
-                        total_test += labels.size(0).cpu().numpy()
+                        correct_test += (predicted == labels).sum().item()#.cpu().numpy()
+                        total_test += labels.size(0)#.cpu().numpy()
 
             test_accuracy = correct_test / total_test
             print(f'Test Accuracy: {test_accuracy}')
@@ -458,17 +458,17 @@ class MTL_engine:
                   # Perform optimization step
                   self.optimizer.step()
 
-                  running_loss += total_loss.item().cpu().numpy()
+                  running_loss += total_loss.item()#.cpu().numpy()
 
                   # calculate accuracy for transport classification 
                   predicted_transport = (transport_out > 0.5).int()
-                  correct_transport_train += (predicted_transport == seq_labels).sum().item().cpu().numpy()
-                  total_transport_train += seq_labels.size(0).cpu().numpy()
+                  correct_transport_train += (predicted_transport == seq_labels).sum().item()#.cpu().numpy()
+                  total_transport_train += seq_labels.size(0)#.cpu().numpy()
 
                   # Calculate accuracy for driver identification
                   _, predicted_driver = torch.max(driver_out, 1)
-                  correct_driver_train += (predicted_driver == fmap_labels).sum().item().cpu().numpy()
-                  total_driver_train += fmap_labels.size(0).cpu().numpy()
+                  correct_driver_train += (predicted_driver == fmap_labels).sum().item()#.cpu().numpy()
+                  total_driver_train += fmap_labels.size(0)#.cpu().numpy()
 
             train_loss = running_loss / len(train_loader)
             train_acc_transport = 100 * correct_transport_train / total_transport_train
@@ -497,15 +497,15 @@ class MTL_engine:
                         loss_driver = self.criterion_driver(driver_out, fmap_labels.long())
 
                         total_loss = alpha * loss_transport + beta * loss_driver
-                        val_loss += total_loss.item().cpu().numpy()
+                        val_loss += total_loss.item()#.cpu().numpy()
 
                         predicted_transport = (transport_out > 0.5).int()
-                        correct_transport_val += (predicted_transport == seq_labels).sum().item().cpu().numpy()
-                        total_transport_val += seq_labels.size(0).cpu().numpy()
+                        correct_transport_val += (predicted_transport == seq_labels).sum().item()#.cpu().numpy()
+                        total_transport_val += seq_labels.size(0)#.cpu().numpy()
 
                         _, predicted_driver = torch.max(driver_out, 1)
-                        correct_driver_val += (predicted_driver == fmap_labels).sum().item().cpu().numpy()
-                        total_driver_val += fmap_labels.size(0).cpu().numpy()
+                        correct_driver_val += (predicted_driver == fmap_labels).sum().item()#.cpu().numpy()
+                        total_driver_val += fmap_labels.size(0)#.cpu().numpy()
 
             val_loss = val_loss / len(val_loader)
             val_acc_transport = 100 * correct_transport_val / total_transport_val
@@ -578,16 +578,16 @@ class MTL_engine:
                         loss_driver = criterion_driver(driver_out, fmap_labels.long())
 
                         total_loss = alpha * loss_transport + beta * loss_driver
-                        test_loss += total_loss.item().cpu().numpy()
+                        test_loss += total_loss.item()#.cpu().numpy()
 
                         # Calculate accuracies
                         predicted_transport = (transport_out > 0.5).int()
                         correct_test_transport += (predicted_transport == seq_labels).sum().item().cpu().numpy()
-                        total_test_transport += seq_labels.size(0).cpu().numpy()
+                        total_test_transport += seq_labels.size(0)#.cpu().numpy()
 
                         _, predicted_driver = torch.max(driver_out, 1)
-                        correct_test_driver += (predicted_driver == fmap_labels).sum().item().cpu().numpy()
-                        total_test_driver += fmap_labels.size(0).cpu().numpy()
+                        correct_test_driver += (predicted_driver == fmap_labels).sum().item()#.cpu().numpy()
+                        total_test_driver += fmap_labels.size(0)#.cpu().numpy()
 
             test_loss /= len(test_loader)
             test_accuracy_transport = 100 * (correct_test_transport / total_test_transport)
