@@ -349,6 +349,59 @@ class Prep_data_for_CNN:
             uniq, y = np.unique(y_lab, return_inverse=True)
             return X, y, uniq
       
+      def prep_for_FMAPextract(self, subbed_data, windowed_df):
+            '''Prepares the windowed_df for feature maps extractions matching the amount of data to reflect the 
+            number of data pts in the lstm features.'''
+            # get sections in windowed_df which are interpolated. These wouldn't be duplicated
+            sections_interpltd = self.get_interpolated_sections(subbed_data, windowed_df)
+            windowed_df['Interp_Flag'] = 0
+
+            for (user, position, segment) in sections_interpltd:
+                  # notice above that segments for each position are unique so we don't really need coarse_label
+                  # since full_windowed_df doesn't have one
+                  idx = windowed_df.query("user==@user & position==@position & segment==@segment").index
+                  windowed_df.loc[idx[-1], 'Interp_Flag'] = 1
+
+            # Filter out rows where Interp_Flag == 1
+            to_duplicate = windowed_df[windowed_df['Interp_Flag'] != 1].copy()
+
+            # Concatenate the original DataFrame with the duplicated rows
+            windowed_df = pd.concat([windowed_df, to_duplicate]).sort_index(kind='mergesort').reset_index(drop=True)  
+
+            # adding duplicate flag to df
+            windowed_df['Dupl_Flag'] = 0
+            flag = [0, 1] * (len(windowed_df.query('Interp_Flag == 0'))//2)
+            idx = windowed_df.query('Interp_Flag == 0').index
+
+            windowed_df.loc[idx, 'Dupl_Flag'] = flag
+
+            # add train_flag where interp==1 or interp==0 and dupl_flag=0
+            windowed_df['Train_Flag'] = 0
+            idx = windowed_df.query('(Interp_Flag == 1) | (Interp_Flag == 0 & Dupl_Flag==0)').index
+
+            windowed_df.loc[idx, 'Train_Flag'] = 1
+
+            users = windowed_df.user.unique()
+            positions = windowed_df.position.unique()
+            sections = []
+
+            for user, position in itertools.product(users, positions):
+                  segments = windowed_df.query('user==@user & position==@position').segment.unique()
+                  for segment in segments:
+                        sections.append((user, position, segment))
+
+            ## turn off the flags all other sections
+            idx_keep = []
+            for (user, position, segment) in sections:
+                  idx_keep.extend(windowed_df.query('user==@user & position==@position & segment==@segment').index)
+
+            # select the rows that aren't driving data
+            idx_flip = windowed_df.index[~windowed_df.index.isin(idx_keep)]
+
+            # flip them to 0 so that they don't train
+            windowed_df.loc[idx_flip, 'Train_Flag'] = 0
+
+            return windowed_df
 
       ## Function for getting window_df from data_dir
       def get_window_df_from_dir(self, data_dir, window_size=224, overlap=0, prep_for_FMAPextract=False):
@@ -364,66 +417,14 @@ class Prep_data_for_CNN:
 
             windowed_df = self.get_windowed_df(subbed_data, window_size, overlap)
 
+            if prep_for_FMAPextract == True:
+                  windowed_df = self.prep_for_FMAPextract(subbed_data, windowed_df)
+
             # change other labels to `Not_driving`  (a dummy label)
             windowed_df['user_act'] = windowed_df['user'].values
             idx_users = windowed_df.query('coarse_label == 5.0').index
             df_with_drivers = windowed_df.index.isin(idx_users)
             windowed_df.loc[~df_with_drivers, 'user'] = 'Not_driving'
-
-            if prep_for_FMAPextract == True:
-                  sections_interpltd = self.get_interpolated_sections(subbed_data, windowed_df)
-                  windowed_df['Interp_Flag'] = 0
-
-                  for (user, position, segment) in sections_interpltd:
-                        # notice above that segments for each position are unique so we don't really need coarse_label
-                        # since full_windowed_df doesn't have one
-                        idx = windowed_df.query("user==@user & position==@position & segment==@segment").index
-                        windowed_df.loc[idx[-1], 'Interp_Flag'] = 1
-
-                  # Filter out rows where Interp_Flag == 1
-                  to_duplicate = windowed_df[windowed_df['Interp_Flag'] != 1].copy()
-
-                  # Concatenate the original DataFrame with the duplicated rows
-                  windowed_df = pd.concat([windowed_df, to_duplicate]).sort_index(kind='mergesort').reset_index(drop=True)  
-
-                  # adding duplicate flag to df
-                  windowed_df['Dupl_Flag'] = 0
-                  flag = [0, 1] * (len(windowed_df.query('Interp_Flag == 0'))//2)
-                  idx = windowed_df.query('Interp_Flag == 0').index
-
-                  windowed_df.loc[idx, 'Dupl_Flag'] = flag
-
-                  # add train_flag where interp==1 or interp==0 and dupl_flag=0
-                  windowed_df['Train_Flag'] = 0
-                  idx = windowed_df.query('(Interp_Flag == 1) | (Interp_Flag == 0 & Dupl_Flag==0)').index
-
-                  windowed_df.loc[idx, 'Train_Flag'] = 1
-
-                  users = windowed_df.user.unique()
-                  positions = windowed_df.position.unique()
-                  sections = []
-
-                  for user, position in itertools.product(users, positions):
-                        segments = windowed_df.query('user==@user & position==@position').segment.unique()
-                        for segment in segments:
-                              sections.append((user, position, segment))
-
-                  ## turn off the flags all other sections
-                  idx_keep = []
-                  for (user, position, segment) in sections:
-                        idx_keep.extend(windowed_df.query('user==@user & position==@position & segment==@segment').index)
-
-                  # select the rows that aren't driving data
-                  idx_flip = windowed_df.index[~windowed_df.index.isin(idx_keep)]
-
-                  # flip them to 0 so that they don't train
-                  windowed_df.loc[idx_flip, 'Train_Flag'] = 0
-
-                  # for storing the actual user labels
-                  windowed_df['user_act'] = windowed_df['user'].values
-                  idx_users = windowed_df.query('coarse_label == 5.0').index
-                  df_with_drivers = windowed_df.index.isin(idx_users)
-                  windowed_df.loc[~df_with_drivers, 'user'] = 'Not_driving'
 
             return windowed_df
       
