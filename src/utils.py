@@ -1,6 +1,6 @@
 ## Contains utility functions for the 3 different models
 from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from src.dataset import TransportModeDataset, FeatureMapDataset, CombinedDataset
 
 
@@ -11,10 +11,10 @@ class BiLSTM:
       def create_dataloaders(self, features, labels, k=5, batch_size=16, seed=42):
             '''Create training and validation dataloaders for training with kfold CV'''
             
-            kf = KFold(n_splits=k, shuffle=True, random_state=seed)
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=seed)
             dataloaders = []
 
-            for train_index, val_index in kf.split(features):
+            for train_index, val_index in skf.split(features, labels):
                   train_features, val_features = features[train_index], features[val_index]
                   train_labels, val_labels = labels[train_index], labels[val_index]
 
@@ -36,10 +36,10 @@ class ResNet50_GRU:
       def create_dataloaders(self, features, labels, k=5, batch_size=16, seed=42):
             '''Create training and validation dataloaders for training with kfold CV'''
             
-            kf = KFold(n_splits=k, shuffle=True, random_state=seed)
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=seed)
             dataloaders = []
 
-            for train_index, val_index in kf.split(features):
+            for train_index, val_index in skf.split(features, labels):
                   train_features, val_features = features[train_index], features[val_index]
                   train_labels, val_labels = labels[train_index], labels[val_index]
 
@@ -60,10 +60,10 @@ class MultiTaskModel:
 
       def create_combined_dataloaders(self, sequences, seq_labels, feature_maps, fmap_labels, k=5, batch_size=16, random_seed=42):
             '''Create dataloaders out of the combined dataset'''
-            kf = KFold(n_splits=k, shuffle=True, random_state=random_seed)
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=random_seed)
             dataloaders = []
 
-            for train_index, val_index in kf.split(sequences):
+            for train_index, val_index in skf.split(feature_maps, fmap_labels):
                   train_sequences, val_sequences = sequences[train_index], sequences[val_index]
                   train_seq_labels, val_seq_labels = seq_labels[train_index], seq_labels[val_index]
                   train_feature_maps, val_feature_maps = feature_maps[train_index], feature_maps[val_index]
