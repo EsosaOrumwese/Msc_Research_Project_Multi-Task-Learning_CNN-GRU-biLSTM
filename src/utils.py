@@ -20,8 +20,8 @@ class BiLSTM:
             train_dataset = TransportModeDataset(train_features, train_labels)
             validation_dataset = TransportModeDataset(val_features, val_labels)
 
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
             dataloaders.append((train_loader, validation_loader))
             
@@ -40,8 +40,8 @@ class BiLSTM:
                   train_dataset = TransportModeDataset(train_features, train_labels)
                   validation_dataset = TransportModeDataset(val_features, val_labels)
 
-                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
                   dataloaders.append((train_loader, validation_loader))
             
@@ -63,8 +63,8 @@ class ResNet50_GRU:
             train_dataset = FeatureMapDataset(train_features, train_labels)
             validation_dataset = FeatureMapDataset(val_features, val_labels)
 
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
             dataloaders.append((train_loader, validation_loader))
             
@@ -83,8 +83,8 @@ class ResNet50_GRU:
                   train_dataset = FeatureMapDataset(train_features, train_labels)
                   validation_dataset = FeatureMapDataset(val_features, val_labels)
 
-                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
                   dataloaders.append((train_loader, validation_loader))
             
@@ -111,8 +111,8 @@ class MultiTaskModel:
             train_dataset = CombinedDataset(train_sequences, train_seq_labels, train_feature_maps, train_fmap_labels)
             validation_dataset = CombinedDataset(val_sequences, val_seq_labels, val_feature_maps, val_fmap_labels)
 
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=4)
+            validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=4)
 
             dataloaders.append((train_loader, validation_loader))
             
@@ -132,8 +132,8 @@ class MultiTaskModel:
                   train_dataset = CombinedDataset(train_sequences, train_seq_labels, train_feature_maps, train_fmap_labels)#, train_flags)
                   validation_dataset = CombinedDataset(val_sequences, val_seq_labels, val_feature_maps, val_fmap_labels)#, val_flags)
 
-                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=4)
+                  validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=4)
 
                   dataloaders.append((train_loader, validation_loader))
 
