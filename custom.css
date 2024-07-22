@@ -1,0 +1,9 @@
+/* custom.css */
+
+/* Set background color for all widgets */
+.tuneStatus {
+    /* white background */
+    background-color: #ffffff;
+    /* Optional: change text color if needed */
+    color: #000000;
+}
