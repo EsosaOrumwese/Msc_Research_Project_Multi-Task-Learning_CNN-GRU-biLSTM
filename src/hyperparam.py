@@ -185,7 +185,7 @@ class RayTuning:
                         num_samples=num_samples,
                         trial_dirname_creator=custom_trial_dirname_creator
                   ),
-                  run_config=train.RunConfig(storage_path="./ray_results", name=self.save_dir),
+                  run_config=train.RunConfig(storage_path=os.path.abspath("./ray_results"), name=self.save_dir),
                   param_space=self.config
             )
             results = tuner.fit()
