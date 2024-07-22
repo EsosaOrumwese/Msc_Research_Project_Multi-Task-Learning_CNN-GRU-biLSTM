@@ -54,7 +54,7 @@ class RayTuning:
 
             if Config["optimizer"] == "adam":
                   optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
-            elif self.config["optimizer"] == "sgd":
+            elif Config["optimizer"] == "sgd":
                   optimizer = optim.SGD(model.parameters(), lr=Config["lr"])
 
             if Config["scheduler"] == "step":
@@ -161,7 +161,7 @@ class RayTuning:
                   print("Best trial test set accuracy: {:.4f}%".format(test_acc))
             
 
-      def main(self, train_datasets, valid_datasets, test_dataset, num_samples=10, max_num_epochs=10, gpus_per_trial=2):
+      def main(self, train_datasets, valid_datasets, test_dataset, num_samples=10, max_num_epochs=10):
             def custom_trial_dirname_creator(trial):
                   '''A  function that generates shorter directory names for the trials'''
                   return f"trial_{trial.trial_id}"
@@ -176,7 +176,7 @@ class RayTuning:
                         tune.with_parameters(self.train_model, 
                                           train_datasets=train_datasets,
                                           valid_datasets=valid_datasets),
-                        resources={"cpu": 2, "gpu": gpus_per_trial}
+                        resources={"cpu": 2, "gpu": 1}
                   ),
                   tune_config=tune.TuneConfig(
                         metric="loss",
