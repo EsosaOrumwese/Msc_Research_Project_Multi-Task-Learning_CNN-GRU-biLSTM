@@ -556,7 +556,7 @@ class MTL_engine:
             return train_loss_history, val_loss_history, train_acc_transport_history, \
                   val_acc_transport_history, train_acc_driver_history, val_acc_driver_history
       
-      def test_model(self, test_loader, criterion_transport, criterion_driver, alpha=1.0, beta=1.0):
+      def test(self, test_loader, criterion_transport, criterion_driver, alpha=1.0, beta=1.0):
             self.model.eval()
             test_loss = 0.0
             correct_test_transport = 0
