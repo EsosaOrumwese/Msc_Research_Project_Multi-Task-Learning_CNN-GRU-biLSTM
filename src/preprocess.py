@@ -6,6 +6,18 @@ import torch
 
 
 ## basic functions for preprocessing
+def segment_data(data):
+      '''Gets the different journey segments based on the data. It doesn't do so
+      per day. When assigning the segment number after identifying the segments, it
+      doesn't take date into account'''
+
+      data['Date'] = data['Date'].astype(str)
+      data['Label_Change'] = (data.groupby(['Date', 'Position'], group_keys=False)['Coarse_label']   # group_keys=False prevents the result from being Multiindex
+                              .apply(lambda x: x.shift(1) != x))
+      data['Segment'] = data.groupby('Position')['Label_Change'].cumsum()
+
+      return data
+
 def create_sub_segments(data, window_size=112, overlap=0.5):
       '''Creates sub_segments for each segment (journey) using a specific window_size
       with overlap'''

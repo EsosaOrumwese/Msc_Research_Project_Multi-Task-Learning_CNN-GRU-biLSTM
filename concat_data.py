@@ -1,4 +1,5 @@
 import pandas as pd
+from src.preprocess import segment_data
 
 ## Combines the data from all users together and selected required columns
 
@@ -15,6 +16,7 @@ columns = ['time_ms', 'acceleration_x', 'acceleration_y', 'acceleration_z',
 
 concat_df = pd.DataFrame(columns=columns)
 
+
 for i, user_file in enumerate([user1_file, user2_file, user3_file]):
       data = pd.read_csv(user_file)
 
@@ -25,6 +27,9 @@ for i, user_file in enumerate([user1_file, user2_file, user3_file]):
 
       # add user to data
       data['User'] = users[i]
+
+      # add segments to the data to represent journeys
+      data = segment_data(data)
 
       concat_df = pd.concat([concat_df, data], ignore_index=True)
 
