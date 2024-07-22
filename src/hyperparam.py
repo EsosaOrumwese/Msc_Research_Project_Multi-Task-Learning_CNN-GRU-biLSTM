@@ -48,21 +48,21 @@ class RayTuning:
                   self.criterion = criterion
       
       # Define a training function that integrates with Ray Tune
-      def train_model(self, train_datasets, valid_datasets):
+      def train_model(self, Config, train_datasets, valid_datasets):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             model = self.model().to(device)
 
-            if self.config["optimizer"] == "adam":
-                  optimizer = optim.Adam(model.parameters(), lr=self.config["lr"])
+            if Config["optimizer"] == "adam":
+                  optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
             elif self.config["optimizer"] == "sgd":
-                  optimizer = optim.SGD(model.parameters(), lr=self.config["lr"])
+                  optimizer = optim.SGD(model.parameters(), lr=Config["lr"])
 
-            if self.config["scheduler"] == "step":
-                  scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=self.config["step_size"], gamma=self.config["gamma"])
-            elif self.config["scheduler"] == "exp":
-                  scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.config["gamma"])
-            elif self.config["scheduler"] == "cos":
-                  scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
+            if Config["scheduler"] == "step":
+                  scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=Config["step_size"], gamma=Config["gamma"])
+            elif Config["scheduler"] == "exp":
+                  scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=Config["gamma"])
+            elif Config["scheduler"] == "cos":
+                  scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=Config["epochs"])
 
             # Load existing checkpoint through `get_checkpoint()` API.
             if train.get_checkpoint():
@@ -75,17 +75,17 @@ class RayTuning:
                         optimizer.load_state_dict(optimizer_state)
                         scheduler.load_state_dict(scheduler_state)
             
-            train_loader = DataLoader(train_datasets, batch_size=int(self.config["batch_size"]), 
+            train_loader = DataLoader(train_datasets, batch_size=int(Config["batch_size"]), 
                                     shuffle=True, num_workers=4)
-            val_loader = DataLoader(valid_datasets, batch_size=int(self.config["batch_size"]), 
+            val_loader = DataLoader(valid_datasets, batch_size=int(Config["batch_size"]), 
                                     shuffle=True, num_workers=4)
 
             if self.modelType == 'MultiTaskModel':
                   engine = self.engine(model, optimizer, scheduler, self.criterion_driver, self.criterion_transport, device)
 
-                  for epoch in range(self.config['epochs']):
-                        train_loss, train_acc_tr, train_acc_dr = engine.train(train_loader, self.config["alpha"], self.config["beta"])
-                        val_loss, val_acc_tr, val_acc_dr,_ = engine.validate(val_loader, self.config["alpha"], self.config["beta"])
+                  for epoch in range(Config['epochs']):
+                        train_loss, train_acc_tr, train_acc_dr = engine.train(train_loader, Config["alpha"], Config["beta"])
+                        val_loss, val_acc_tr, val_acc_dr,_ = engine.validate(val_loader, Config["alpha"], Config["beta"])
 
                         
                         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
@@ -105,7 +105,7 @@ class RayTuning:
             else:
                   engine = self.engine(model, optimizer, scheduler, self.criterion, device)
             
-                  for epoch in range(self.config['epochs']):
+                  for epoch in range(Config['epochs']):
                         train_loss, train_acc = engine.train(train_loader)
                         val_loss, val_acc, _ = engine.validate(val_loader)
 
