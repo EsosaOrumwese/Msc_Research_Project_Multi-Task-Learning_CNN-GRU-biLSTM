@@ -11,7 +11,7 @@ class SimpleCNN(nn.Module):
             self.conv1 = nn.Conv1d(in_channels=1, out_channels=224, kernel_size=3, padding=1)
             self.conv2 = nn.Conv2d(in_channels=224, out_channels=224, kernel_size=3, padding=1)
             self.flatten = nn.Flatten()
-            self.fc = nn.Linear(224 * 224, 3)  # Fully connected layer for classification
+            self.fc = nn.Linear(224 * 224, 4)  # Fully connected layer for classification
 
       def forward(self, x):
             x = F.relu(self.conv1(x))  # Apply ReLU activation after Conv1d
