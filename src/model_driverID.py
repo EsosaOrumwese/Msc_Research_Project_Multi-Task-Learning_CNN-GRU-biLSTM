@@ -7,7 +7,7 @@ from torchvision import models
 ## `Nor_driving` class is more like a dummy label which represents data that's not associated with any driver or even driving at all 
 
 class ResNet50_GRU(nn.Module):
-      def __init__(self, hidden_size=512, num_classes=3):
+      def __init__(self, hidden_size=512, num_classes=4):
             super(ResNet50_GRU, self).__init__()
 
             self.resnet50 = models.resnet50(weights='DEFAULT')

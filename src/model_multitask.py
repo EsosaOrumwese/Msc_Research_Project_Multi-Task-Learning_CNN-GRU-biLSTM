@@ -53,7 +53,7 @@ class MultitaskModel(nn.Module):
             self.gru_transport = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, dropout=0.5)
 
             # Task-specific fully connected layers
-            self.fc_driver = nn.Linear(hidden_size, 3) # now we're looking at multiclass classification
+            self.fc_driver = nn.Linear(hidden_size, 4) # now we're looking at multiclass classification
             self.fc_transport = nn.Linear(hidden_size, 1)
             
             # sigmoid for binary classification
