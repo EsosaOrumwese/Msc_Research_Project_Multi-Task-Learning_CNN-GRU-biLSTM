@@ -161,6 +161,37 @@ class simpleCNN_engine:
             accuracy = correct_agreements / total_samples
             print(f"Agreement accuracy among models: {accuracy}")
 
+      def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
+            '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
+            the original test set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
+            saved checkpoint'''
+            train_losses = []
+            train_accuracies = []
+
+            for epoch in range(epochs):
+                  for dl in (val_loader, test_loader):
+                        # training
+                        train_loss, train_accuracy = self.train(dl)
+                        train_losses.append(train_loss)
+                        train_accuracies.append(train_accuracy)
+
+
+                  self.scheduler.step()
+
+                  print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
+
+                  # Save checkpoint
+                  if save_path:
+                        for _ in range(5):  # Retry up to 5 times
+                              try:
+                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    break
+                              except Exception as e:
+                                    print(f"Error saving model: {e}. Retrying in 1 second.")
+                                    time.sleep(1)
+
+            return train_losses, train_accuracies # replace val data with None
+
 
 
 ###### BiLSTM ---TRANSPORT MODE CLASSIFICATION --- 
@@ -284,6 +315,37 @@ class biLSTM_engine:
 
             print(f'Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%')
             return test_loss, test_accuracy
+      
+      def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
+            '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
+            the original test set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
+            saved checkpoint'''
+            train_losses = []
+            train_accuracies = []
+
+            for epoch in range(epochs):
+                  for dl in (val_loader, test_loader):
+                        # training
+                        train_loss, train_accuracy = self.train(dl)
+                        train_losses.append(train_loss)
+                        train_accuracies.append(train_accuracy)
+
+
+                  self.scheduler.step()
+
+                  print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
+
+                  # Save checkpoint
+                  if save_path:
+                        for _ in range(5):  # Retry up to 5 times
+                              try:
+                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    break
+                              except Exception as e:
+                                    print(f"Error saving model: {e}. Retrying in 1 second.")
+                                    time.sleep(1)
+
+            return train_losses, train_accuracies 
 
 
 ##### RESNET50-GRU MODEL ---DRIVER IDENTIFICATION----
@@ -402,6 +464,37 @@ class ResNet50_GRU_engine:
             print(f'Test Accuracy: {test_accuracy}')
 
             return test_accuracy
+
+      def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
+            '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
+            the original test set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
+            saved checkpoint'''
+            train_losses = []
+            train_accuracies = []
+
+            for epoch in range(epochs):
+                  for dl in (val_loader, test_loader):
+                        # training
+                        train_loss, train_accuracy = self.train(dl)
+                        train_losses.append(train_loss)
+                        train_accuracies.append(train_accuracy)
+
+
+                  self.scheduler.step()
+
+                  print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
+
+                  # Save checkpoint
+                  if save_path:
+                        for _ in range(5):  # Retry up to 5 times
+                              try:
+                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    break
+                              except Exception as e:
+                                    print(f"Error saving model: {e}. Retrying in 1 second.")
+                                    time.sleep(1)
+
+            return train_losses, train_accuracies 
 
 
 ###### MULTITASKLEARNING MODEL FOR BOTH TASKS 
@@ -597,3 +690,34 @@ class MTL_engine:
                   f'Test Driver Accuracy: {test_accuracy_driver:.2f}%')
 
             return test_loss, test_accuracy_transport, test_accuracy_driver
+      
+      def train_endgame(self, val_loader, test_loader, epochs, alpha=1.0, beta=1.0, save_path=None):
+            train_loss_history = []
+            train_acc_transport_history = []
+            train_acc_driver_history = []
+
+            for epoch in range(epochs):
+                  for dl in (val_loader, test_loader):
+                        # training
+                        train_loss, train_acc_transport, train_acc_driver = self.train(dl, alpha, beta)
+                        train_loss_history.append(train_loss)
+                        train_acc_transport_history.append(train_acc_transport)
+                        train_acc_driver_history.append(train_acc_driver)
+
+                  self.scheduler.step()
+
+                  print(f'Epoch [{epoch+1}/{epochs}], '
+                        f'Train Loss: {train_loss_history[-1]:.4f}, Train Transport Acc: {train_acc_transport_history[-1]:.2f}%, '
+                        f'Train Driver Acc: {train_acc_driver_history[-1]:.2f}%, ')
+
+                  # Save checkpoint
+                  if save_path:
+                        for _ in range(5):  # Retry up to 5 times
+                              try:
+                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    break
+                              except Exception as e:
+                                    print(f"Error saving model: {e}. Retrying in 1 second.")
+                                    time.sleep(1)
+
+            return train_loss_history, train_acc_transport_history, train_acc_driver_history
