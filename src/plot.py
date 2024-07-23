@@ -46,7 +46,7 @@ def plot_endgame_history(endgame_hist, history):
       ax.set_ylabel('Loss', size=15)
 
       ax = fig.add_subplot(1, 2, 2)
-      ax.plot(x_arr, hist[2], '-o', label='Train acc.')
+      ax.plot(x_arr, hist[1], '-o', label='Train acc.')
       ax.legend(fontsize=15)
       ax.set_xlabel('Epoch', size=15)
       ax.set_ylabel('Accuracy', size=15)
@@ -131,13 +131,13 @@ class MTL_plot:
             ax.set_ylabel('Loss', size=15)
 
             ax = fig.add_subplot(1, 3, 2)
-            ax.plot(x_arr, hist[2], '-o', label='Train transp_acc.')
+            ax.plot(x_arr, hist[1], '-o', label='Train transp_acc.')
             ax.legend(fontsize=15)
             ax.set_xlabel('Epoch', size=15)
             ax.set_ylabel('Accuracy', size=15)
 
             ax = fig.add_subplot(1, 3, 3)
-            ax.plot(x_arr, hist[4], '-o', label='Train driv_acc.')
+            ax.plot(x_arr, hist[2], '-o', label='Train driv_acc.')
             ax.legend(fontsize=15)
             ax.set_xlabel('Epoch', size=15)
             ax.set_ylabel('Accuracy', size=15)
