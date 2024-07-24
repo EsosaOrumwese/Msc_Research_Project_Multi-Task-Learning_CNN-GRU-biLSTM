@@ -4,6 +4,7 @@ import os
 import csv
 import itertools
 from scipy.interpolate import interp1d
+from tqdm import tqdm
 import torch
 
 
@@ -496,7 +497,7 @@ class FeatureMaps_extractor:
             iterators = {key: iter(dataloaders[key]) for key in dataloaders.keys()}
 
             # iterate through the assumed number of batches the dataloader
-            for _ in range(len(self.idx_list)):
+            for _ in tqdm(range(len(self.idx_list)), desc=f"Extracting Feature Maps {split}"):
                   feature_maps = {}
                   labels = {}
 
