@@ -35,7 +35,7 @@ class TransportModeDataset(Dataset):
                base_dir (str): Directory where the lstm feature data is stored.
                mode (str): Data mode ('train', 'valid', or 'test').
             """
-            self.base_dir = base_dir
+            self.base_dir = os.path.abspath(base_dir)
             self.split = mode
             self.metadata = []
 
@@ -64,7 +64,7 @@ class FeatureMapDataset(Dataset):
                base_dir (str): Directory where the feature maps are stored.
                mode (str): Data mode ('train', 'valid', or 'test').
             """
-            self.base_dir = base_dir
+            self.base_dir = os.path.abspath(base_dir)
             self.split = mode
             self.metadata = []
 
@@ -94,8 +94,8 @@ class CombinedDataset(Dataset):
                lstm_base_dir (str): Directory where the lstm feature data is stored.
                mode (str): Data mode ('train', 'valid', or 'test').
             """
-            self.fmap_base_dir = fmap_base_dir
-            self.lstm_base_dir = lstm_base_dir
+            self.fmap_base_dir = os.path.abspath(fmap_base_dir)
+            self.lstm_base_dir = os.path.abspath(lstm_base_dir)
             self.split = mode
             self.fmap_metadata = []
             self.lstm_metadata = []
