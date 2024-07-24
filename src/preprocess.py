@@ -507,7 +507,18 @@ class FeatureMaps_extractor:
                         x_batch = x_batch.to(self.device)
 
                         f_maps = self.get_feature_map(models[key], x_batch)
-                        feature_maps[key] = f_maps.squeeze(0).squeeze(1)  # Shape: (224, 224)
+
+                        # Check feature map shape before squeeze
+                        if f_maps.shape != (1, 224, 1, 224):
+                              raise ValueError(f"Unexpected feature map shape before squeeze for {key}: {f_maps.shape}")
+                        
+                        f_maps = f_maps.squeeze(0).squeeze(1)
+
+                        # Check feature map shape before squeeze
+                        if f_maps.shape != (1, 224, 1, 224):
+                              raise ValueError(f"Unexpected feature map shape before squeeze for {key}: {f_maps.shape}")
+                        
+                        feature_maps[key] = f_maps  # Shape: (224, 224)
                         labels[key] = y_batch.numpy()
 
                   # Save the combined feature map for each sample in the batch
@@ -536,6 +547,10 @@ class FeatureMaps_extractor:
             # Combine the feature maps along the channel dimension
             combined_map = np.stack((long_maps, tranv_maps, angvel_maps), axis=0)  # Shape: (3, 224, 224)
 
+            # Check combined map shape
+            if combined_map.shape != (3, 224, 224):
+                  raise ValueError(f"Unexpected combined map shape: {combined_map.shape}")
+            
             # Save the combined feature map
             filename = f'{idx}.npy'
             save_path = os.path.join(self.base_dir, split, filename)
