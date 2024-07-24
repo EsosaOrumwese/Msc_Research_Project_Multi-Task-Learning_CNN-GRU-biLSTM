@@ -1,6 +1,9 @@
 ## File contains the different dataset classes for the different problems
-from torch.utils.data import Dataset
+import os
+import numpy as np
+import csv
 import torch
+from torch.utils.data import Dataset
 
 
 ## Dataset for simple cnn
@@ -24,47 +27,106 @@ class SignalsDataset(Dataset):
             return x, y
 
 
-## Dataset class for biLSTM model
+## Dataset class for biLSTM model   
 class TransportModeDataset(Dataset):
-      def __init__(self, features, labels):
-            self.features = features
-            self.labels = labels
+      def __init__(self, base_dir, split):
+            """
+            Args:
+               base_dir (str): Directory where the lstm feature data is stored.
+               split (str): Data split ('train', 'valid', or 'test').
+            """
+            self.base_dir = base_dir
+            self.split = split
+            self.metadata = []
+
+            # Read the metadata CSV file to get filenames and labels
+            csv_file = os.path.join(self.base_dir, self.split, 'metadata.csv')
+            with open(csv_file, mode='r') as file:
+                  reader = csv.reader(file)
+                  next(reader)  # Skip header row
+                  self.metadata = [(row[0], int(row[1])) for row in reader]
 
       def __len__(self):
-            return len(self.features)
+            return len(self.metadata)
 
       def __getitem__(self, idx):
-            return self.features[idx], self.labels[idx]
+            filename, label = self.metadata[idx]
+            file_path = os.path.join(self.base_dir, self.split, filename)
+            feature_map = np.load(file_path)
+            return torch.tensor(feature_map, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 
 ## Dataset class for ResNet50-GRU model
 class FeatureMapDataset(Dataset):
-      def __init__(self, feature_maps, labels):
-            self.feature_maps = feature_maps
-            self.labels = labels
+      def __init__(self, base_dir, split):
+            """
+            Args:
+               base_dir (str): Directory where the feature maps are stored.
+               split (str): Data split ('train', 'valid', or 'test').
+            """
+            self.base_dir = base_dir
+            self.split = split
+            self.metadata = []
+
+            # Read the metadata CSV file to get filenames and labels
+            csv_file = os.path.join(self.base_dir, self.split, 'metadata.csv')
+            with open(csv_file, mode='r') as file:
+                  reader = csv.reader(file)
+                  next(reader)  # Skip header row
+                  self.metadata = [(row[0], int(row[1])) for row in reader]
 
       def __len__(self):
-            return len(self.feature_maps)
+            return len(self.metadata)
 
       def __getitem__(self, idx):
-            return self.feature_maps[idx], self.labels[idx]
+            filename, label = self.metadata[idx]
+            file_path = os.path.join(self.base_dir, self.split, filename)
+            feature_map = np.load(file_path)
+            return torch.tensor(feature_map, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 
 ## Dataset for MultiTask model
 class CombinedDataset(Dataset):
-      def __init__(self, sequences, seq_labels, feature_maps, fmap_labels):
-            self.sequences = sequences
-            self.seq_labels = seq_labels
-            self.feature_maps = feature_maps
-            self.fmap_labels = fmap_labels
+      def __init__(self, fmap_base_dir, lstm_base_dir, split):
+            """
+            Args:
+               fmap_base_dir (str): Directory where the feature maps are stored.
+               lstm_base_dir (str): Directory where the lstm feature data is stored.
+               split (str): Data split ('train', 'valid', or 'test').
+            """
+            self.fmap_base_dir = fmap_base_dir
+            self.lstm_base_dir = lstm_base_dir
+            self.split = split
+            self.fmap_metadata = []
+            self.lstm_metadata = []
+
+            csv_file = os.path.join(self.fmap_base_dir, self.split, 'metadata.csv')
+            with open(csv_file, mode='r') as file:
+                  reader = csv.reader(file)
+                  next(reader)  # Skip header row
+                  self.fmap_metadata = [(row[0], int(row[1])) for row in reader]
+
+            csv_file = os.path.join(self.lstm_base_dir, self.split, 'metadata.csv')
+            with open(csv_file, mode='r') as file:
+                  reader = csv.reader(file)
+                  next(reader)  # Skip header row
+                  self.lstm_metadata = [(row[0], int(row[1])) for row in reader]
 
       def __len__(self):
-            return len(self.sequences)  # Assuming all inputs are of equal length
+            return len(self.lstm_metadata) # both have the same length so it doesn't matter
 
       def __getitem__(self, idx):
+            filename_f, label_f = self.fmap_metadata[idx]
+            file_path_f = os.path.join(self.fmap_base_dir, self.split, filename_f)
+            feature_map = np.load(file_path_f)
+
+            filename_l, label_l = self.lstm_metadata[idx]
+            file_path_l = os.path.join(self.lstm_base_dir, self.split, filename_l)
+            lstm = np.load(file_path_l)
+      
             return {
-                  'sequences': self.sequences[idx],
-                  'seq_labels': self.seq_labels[idx],
-                  'feature_maps': self.feature_maps[idx],
-                  'fmap_labels': self.fmap_labels[idx],
+                  'sequences': torch.tensor(lstm, dtype=torch.float32),
+                  'seq_labels': torch.tensor(label_l, dtype=torch.float32),
+                  'feature_maps': torch.tensor(feature_map, dtype=torch.float32),
+                  'fmap_labels': torch.tensor(label_f, dtype=torch.float32)
             }
