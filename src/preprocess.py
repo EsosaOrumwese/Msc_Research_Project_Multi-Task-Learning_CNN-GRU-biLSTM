@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import os
+import csv
 import itertools
 from scipy.interpolate import interp1d
 import torch
@@ -442,11 +444,26 @@ class Prep_data_for_CNN:
       
 
 class FeatureMaps_extractor:
-      def __init__(self) -> None:
-            pass
+      def __init__(self, base_dir, device, idx_list, split):
+            '''Class for extracting 3-channel images from each corresponding model for each 1-D set of signals'''
+            self.base_dir = base_dir
+            self.device = device
+            self.idx_list = idx_list
 
-      # Function to extract feature map
+            # Create directories and CSV files if they don't exist
+            splits = ['train', 'valid', 'test']
+            for split in splits:
+                  split_dir = os.path.join(self.base_dir, split)
+                  os.makedirs(split_dir, exist_ok=True)
+                  csv_file = os.path.join(split_dir, 'metadata.csv')
+                  if not os.path.exists(csv_file):
+                        with open(csv_file, mode='w', newline='') as file:
+                              writer = csv.writer(file)
+                              writer.writerow(['filename', 'label'])
+
+
       def get_feature_map(self, model, x_batch):
+            '''Extracts feature map from a given model'''
             # Place model in evaluation mode
             model.eval()
             
@@ -469,68 +486,62 @@ class FeatureMaps_extractor:
                   hook_handle.remove()
 
             return feature_maps[0]
-
-
-      def feature_map_extractor(self, model, dataloader, device):
-            '''Extracts the feature maps from the model and returns it as well as the corresponding labels'''
-            feature_maps_list = []
-            y_lab = []
-
-            for x_batch, y_batch in dataloader:
-                  x_batch = x_batch.to(device)
-                  f_maps = self.get_feature_map(model, x_batch)
-                  
-                  # Append feature maps and labels
-                  feature_maps_list.append(f_maps)
-                  y_lab.append(y_batch.numpy())
-
-            # Concatenate all feature maps and labels into single arrays
-            feature_maps_array = np.concatenate(feature_maps_list, axis=0)
-            y_lab_array = np.concatenate(y_lab, axis=0)
-
-            return feature_maps_array, y_lab_array
       
-      def combine_feature_maps(self, feature_maps, labels, train_flags, save_arr=False):
+      def feature_map_extractor(self, models, dataloaders, split):
+            '''Extracts feature maps and saves them as .npy files, updating a CSV with the filenames and labels.
+            It receives a dictionary of models and a dictionary of dataloaders. It assumes batch_size=1'''
+            
+            idx = 0
+            # Get iterators for each dataloader
+            iterators = {key: iter(dataloaders[key]) for key in dataloaders.keys()}
+
+            # iterate through the assumed number of batches the dataloader
+            for _ in range(len(self.idx_list)):
+                  feature_maps = {}
+                  labels = {}
+
+                  # Extract feature maps and labels for each modality
+                  for key in dataloaders.keys():
+                        x_batch, y_batch = next(iterators[key])
+                        x_batch = x_batch.to(self.device)
+
+                        f_maps = self.get_feature_map(models[key], x_batch)
+                        feature_maps[key] = f_maps.squeeze(1)  # Shape: (224, 224)
+                        labels[key] = y_batch.numpy()
+
+                  # Save the combined feature map for each sample in the batch
+                  for i in range(x_batch.shape[0]):
+                        combined_feature_maps = {key: feature_maps[key][i] for key in feature_maps}
+                        self.save_combined_feature_map(combined_feature_maps, labels['long'][i], split, self.idx_list[idx])
+                        idx += 1
+
+      
+      def save_combined_feature_map(self, feature_maps, label, split, idx):
             """
-            Combines feature maps from different modalities into a single 3-channel input tensor.
+            Combines feature maps from different modalities into a single 3-channel input tensor,
+            saves it as a .npy file, and logs the file name and label in a CSV file.
 
             Args:
             - feature_maps (dict): Dictionary containing feature maps for 'long', 'tranv', and 'angvel'.
-            - labels (dict): Dictionary containing labels for 'long', 'tranv', and 'angvel'.
-
-            Returns:
-            - combined_maps (np.ndarray): Combined feature maps with shape (N, 3, 224, 224).
-            - combined_labels (np.ndarray): Combined labels.
+            - label (int): Label for the current sample.
+            - split (str): Data split ('train', 'valid', or 'test').
+            - idx (int): Index for file naming. Gotten from Dataframe index
             """
-            # Ensure that the feature maps have the same number of samples
-            assert feature_maps['long'].shape[0] == feature_maps['tranv'].shape[0] == feature_maps['angvel'].shape[0], \
-                  "Feature maps must have the same number of samples."
-
-            # Ensure that the labels are the same for all feature maps
-            assert np.array_equal(labels['long'], labels['tranv']) and np.array_equal(labels['long'], labels['angvel']), \
-                  "Labels must be the same for all feature maps."
-
             # Extract feature maps
             long_maps = feature_maps['long']
             tranv_maps = feature_maps['tranv']
             angvel_maps = feature_maps['angvel']
 
-            # Reshape the feature maps to remove the single dimension (1) in the middle
-            long_maps = long_maps.squeeze(2)  # Shape: (N, 224, 224)
-            tranv_maps = tranv_maps.squeeze(2)  # Shape: (N, 224, 224)
-            angvel_maps = angvel_maps.squeeze(2)  # Shape: (N, 224, 224)
+            # Combine the feature maps along the channel dimension
+            combined_map = np.stack((long_maps, tranv_maps, angvel_maps), axis=0)  # Shape: (3, 224, 224)
 
-            # Stack the feature maps along the channel dimension
-            combined_maps = np.stack((long_maps, tranv_maps, angvel_maps), axis=1)  # Shape: (N, 3, 224, 224)
+            # Save the combined feature map
+            filename = f'{idx}.npy'
+            save_path = os.path.join(self.base_dir, split, filename)
+            np.save(save_path, combined_map)
 
-            # Extract labels (all labels are the same, so we can use any)
-            combined_labels = labels['long']
-
-            if save_arr:
-                  np.save('./data/feature_maps_labels/full_feature_maps.npy',
-                        combined_maps)
-                  np.save('./data/feature_maps_labels/full_labels.npy',
-                        combined_labels)
-
-
-            return combined_maps, combined_labels
+            # Log the file name and label in the CSV
+            csv_file = os.path.join(self.base_dir, split, 'metadata.csv')
+            with open(csv_file, mode='a', newline='') as file:
+                  writer = csv.writer(file)
+                  writer.writerow([filename, label])
