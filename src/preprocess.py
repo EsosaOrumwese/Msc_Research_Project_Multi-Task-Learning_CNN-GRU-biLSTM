@@ -80,10 +80,9 @@ class LSTM_featureExtractor:
       
 
 class Save_Lstm_Feats_n_Labs:      
-      def __init__(self, base_dir, device):
+      def __init__(self, base_dir):
             '''Class for saving the lstm features and labels using the same index as was used for fmaps'''
             self.base_dir = base_dir
-            self.device = device
 
             # Create directories and CSV files if they don't exist
             splits = ['train', 'valid', 'test']
