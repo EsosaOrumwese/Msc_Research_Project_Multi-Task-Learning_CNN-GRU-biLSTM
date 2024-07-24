@@ -507,7 +507,7 @@ class FeatureMaps_extractor:
                         x_batch = x_batch.to(self.device)
 
                         f_maps = self.get_feature_map(models[key], x_batch)
-                        feature_maps[key] = f_maps.squeeze(1)  # Shape: (224, 224)
+                        feature_maps[key] = f_maps.squeeze()  # Shape: (224, 224)
                         labels[key] = y_batch.numpy()
 
                   # Save the combined feature map for each sample in the batch
