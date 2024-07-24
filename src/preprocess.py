@@ -522,10 +522,9 @@ class FeatureMaps_extractor:
                         labels[key] = y_batch.numpy()
 
                   # Save the combined feature map for each sample in the batch
-                  for i in range(x_batch.shape[0]):
-                        combined_feature_maps = {key: feature_maps[key][i] for key in feature_maps}
-                        self.save_combined_feature_map(combined_feature_maps, labels['long'][i], split, self.idx_list[idx])
-                        idx += 1
+                  combined_feature_maps = {key: feature_maps[key] for key in feature_maps}
+                  self.save_combined_feature_map(combined_feature_maps, labels['long'], split, self.idx_list[idx])
+                  idx += 1
 
       
       def save_combined_feature_map(self, feature_maps, label, split, idx):
