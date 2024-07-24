@@ -512,13 +512,13 @@ class FeatureMaps_extractor:
                         if f_maps.shape != (1, 224, 1, 224):
                               raise ValueError(f"Unexpected feature map shape before squeeze for {key}: {f_maps.shape}")
                         
-                        f_maps = f_maps.squeeze(0).squeeze(1)
+                        f_maps = f_maps.squeeze(0).squeeze(1) # Shape: (224, 224)
 
                         # Check feature map shape before squeeze
-                        if f_maps.shape != (1, 224, 1, 224):
+                        if f_maps.shape != (224, 224):
                               raise ValueError(f"Unexpected feature map shape before squeeze for {key}: {f_maps.shape}")
                         
-                        feature_maps[key] = f_maps  # Shape: (224, 224)
+                        feature_maps[key] = f_maps  
                         labels[key] = y_batch.numpy()
 
                   # Save the combined feature map for each sample in the batch
