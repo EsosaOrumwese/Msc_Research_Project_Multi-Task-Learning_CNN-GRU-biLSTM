@@ -79,6 +79,42 @@ class LSTM_featureExtractor:
             return self.lstm_features, self.lstm_labels
       
 
+class Save_Lstm_Feats_n_Labs:      
+      def __init__(self, base_dir, device, idx_list, split):
+            '''Class for saving the lstm features and labels using the same index as was used for fmaps'''
+            self.base_dir = base_dir
+            self.device = device
+            self.idx_list = idx_list
+
+            # Create directories and CSV files if they don't exist
+            splits = ['train', 'valid', 'test']
+            for split in splits:
+                  split_dir = os.path.join(self.base_dir, split)
+                  os.makedirs(split_dir, exist_ok=True)
+                  csv_file = os.path.join(split_dir, 'metadata.csv')
+                  if not os.path.exists(csv_file):
+                        with open(csv_file, mode='w', newline='') as file:
+                              writer = csv.writer(file)
+                              writer.writerow(['filename', 'label'])
+      
+      def save_combined_feature_map(self, feature, label, split, idx):
+
+            # Check feature shape
+            if feature.shape != (112, 6):
+                  raise ValueError(f"Unexpected feature shape: {feature.shape}")
+            
+            # Save the feature
+            filename = f'{idx}.npy'
+            save_path = os.path.join(self.base_dir, split, filename)
+            np.save(save_path, feature)
+
+            # Log the file name and label in the CSV
+            csv_file = os.path.join(self.base_dir, split, 'metadata.csv')
+            with open(csv_file, mode='a', newline='') as file:
+                  writer = csv.writer(file)
+                  writer.writerow([filename, label])
+      
+
 class Long_Tranv_Angvel_from_Quarternions:
       '''Gets the longutinal acceleration and transverse acceleration from quaternions. Angular
       velocity is gotten from the gyroscope measurements'''
