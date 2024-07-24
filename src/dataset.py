@@ -29,14 +29,14 @@ class SignalsDataset(Dataset):
 
 ## Dataset class for biLSTM model   
 class TransportModeDataset(Dataset):
-      def __init__(self, base_dir, split):
+      def __init__(self, base_dir, mode):
             """
             Args:
                base_dir (str): Directory where the lstm feature data is stored.
-               split (str): Data split ('train', 'valid', or 'test').
+               mode (str): Data mode ('train', 'valid', or 'test').
             """
             self.base_dir = base_dir
-            self.split = split
+            self.split = mode
             self.metadata = []
 
             # Read the metadata CSV file to get filenames and labels
@@ -58,14 +58,14 @@ class TransportModeDataset(Dataset):
 
 ## Dataset class for ResNet50-GRU model
 class FeatureMapDataset(Dataset):
-      def __init__(self, base_dir, split):
+      def __init__(self, base_dir, mode):
             """
             Args:
                base_dir (str): Directory where the feature maps are stored.
-               split (str): Data split ('train', 'valid', or 'test').
+               mode (str): Data mode ('train', 'valid', or 'test').
             """
             self.base_dir = base_dir
-            self.split = split
+            self.split = mode
             self.metadata = []
 
             # Read the metadata CSV file to get filenames and labels
@@ -87,16 +87,16 @@ class FeatureMapDataset(Dataset):
 
 ## Dataset for MultiTask model
 class CombinedDataset(Dataset):
-      def __init__(self, fmap_base_dir, lstm_base_dir, split):
+      def __init__(self, fmap_base_dir, lstm_base_dir, mode):
             """
             Args:
                fmap_base_dir (str): Directory where the feature maps are stored.
                lstm_base_dir (str): Directory where the lstm feature data is stored.
-               split (str): Data split ('train', 'valid', or 'test').
+               mode (str): Data mode ('train', 'valid', or 'test').
             """
             self.fmap_base_dir = fmap_base_dir
             self.lstm_base_dir = lstm_base_dir
-            self.split = split
+            self.split = mode
             self.fmap_metadata = []
             self.lstm_metadata = []
 
