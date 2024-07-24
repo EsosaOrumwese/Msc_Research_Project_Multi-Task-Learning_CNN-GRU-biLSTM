@@ -523,7 +523,7 @@ class FeatureMaps_extractor:
 
                   # Save the combined feature map for each sample in the batch
                   combined_feature_maps = {key: feature_maps[key] for key in feature_maps}
-                  self.save_combined_feature_map(combined_feature_maps, labels['long'], split, self.idx_list[idx])
+                  self.save_combined_feature_map(combined_feature_maps, labels['long'][0], split, self.idx_list[idx])
                   idx += 1
 
       
