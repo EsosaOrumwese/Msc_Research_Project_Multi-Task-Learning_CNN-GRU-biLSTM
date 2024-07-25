@@ -4,6 +4,7 @@ import numpy as np
 import csv
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 
 ## Dataset for simple cnn
@@ -52,8 +53,8 @@ class TransportModeDataset(Dataset):
       def __getitem__(self, idx):
             filename, label = self.metadata[idx]
             file_path = os.path.join(self.base_dir, self.split, filename)
-            feature_map = np.load(file_path)
-            return torch.tensor(feature_map, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+            lstm_seq = np.load(file_path)
+            return torch.tensor(lstm_seq, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 
 ## Dataset class for ResNet50-GRU model
@@ -75,14 +76,31 @@ class FeatureMapDataset(Dataset):
                   next(reader)  # Skip header row
                   self.metadata = [(row[0], int(row[1])) for row in reader]
 
+            # Normalization transform to ImageNet mean and std
+            self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
       def __len__(self):
             return len(self.metadata)
 
       def __getitem__(self, idx):
             filename, label = self.metadata[idx]
             file_path = os.path.join(self.base_dir, self.split, filename)
+
+            # load feature map
             feature_map = np.load(file_path)
-            return torch.tensor(feature_map, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+
+            # Rescale feature map to [0, 1]
+            feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
+            feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
+            feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)  # Add epsilon to avoid division by zero
+            
+            # Convert to tensor
+            feature_map = torch.tensor(feature_map, dtype=torch.float32)
+            
+            # Normalize using ImageNet mean and std
+            feature_map = self.normalize(feature_map)
+
+            return feature_map, torch.tensor(label, dtype=torch.float32)
 
 
 ## Dataset for MultiTask model
@@ -112,14 +130,30 @@ class CombinedDataset(Dataset):
                   next(reader)  # Skip header row
                   self.lstm_metadata = [(row[0], int(row[1])) for row in reader]
 
+            # Normalization transform to ImageNet mean and std
+            self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
       def __len__(self):
             return len(self.lstm_metadata) # both have the same length so it doesn't matter
 
       def __getitem__(self, idx):
+            ## feature maps
             filename_f, label_f = self.fmap_metadata[idx]
             file_path_f = os.path.join(self.fmap_base_dir, self.split, filename_f)
             feature_map = np.load(file_path_f)
 
+            # Rescale feature map to [0, 1]
+            feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
+            feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
+            feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)  # Add epsilon to avoid division by zero
+            
+            # Convert to tensor
+            feature_map = torch.tensor(feature_map, dtype=torch.float32)
+            
+            # Normalize using ImageNet mean and std
+            feature_map = self.normalize(feature_map)            
+
+            ## lstm sequences
             filename_l, label_l = self.lstm_metadata[idx]
             file_path_l = os.path.join(self.lstm_base_dir, self.split, filename_l)
             lstm = np.load(file_path_l)
@@ -127,6 +161,6 @@ class CombinedDataset(Dataset):
             return {
                   'sequences': torch.tensor(lstm, dtype=torch.float32),
                   'seq_labels': torch.tensor(label_l, dtype=torch.float32),
-                  'feature_maps': torch.tensor(feature_map, dtype=torch.float32),
+                  'feature_maps': feature_map,
                   'fmap_labels': torch.tensor(label_f, dtype=torch.float32)
             }
