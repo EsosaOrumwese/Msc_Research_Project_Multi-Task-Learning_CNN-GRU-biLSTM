@@ -65,7 +65,7 @@ class RayTuning:
                   model = self.model(input_size=6, hidden_size=Config['hidden_size'], 
                                      num_layers=Config['num_layers'], dropout=Config['dropout']).to(device)
             else:
-                  model = self.model().to(device) #SimpleCNN
+                  model = self.model(l1=Config["l1"], l2=Config["l2"]).to(device) #SimpleCNN
 
             if Config["optimizer"] == "adam":
                   optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
@@ -159,7 +159,7 @@ class RayTuning:
                   best_trained_model = self.model(input_size=6, hidden_size=best_result.config['hidden_size'], 
                                      num_layers=best_result.config['num_layers'], dropout=best_result.config['dropout']).to(device)
             else:
-                  best_trained_model = self.model().to(device) #SimpleCNN
+                  best_trained_model = self.model(l1=best_result.config["l1"], l2=best_result.config["l2"]).to(device) #SimpleCNN
 
             checkpoint_path = os.path.join(best_result.checkpoint.to_directory(), "checkpoint.pt")
 
@@ -212,8 +212,8 @@ class RayTuning:
                         resources={"cpu": 2, "gpu": 1}
                   ),
                   tune_config=tune.TuneConfig(
-                        metric="loss",
-                        mode="min",
+                        metric="accuracy",
+                        mode="max",
                         scheduler=scheduler,
                         num_samples=num_samples,
                         trial_dirname_creator=custom_trial_dirname_creator
@@ -223,7 +223,7 @@ class RayTuning:
             )
             results = tuner.fit()
             
-            best_result = results.get_best_result("loss", "min")
+            best_result = results.get_best_result("accuracy", "max")
 
             print("Best trial config: {}".format(best_result.config))
             print("Best trial final validation loss: {}".format(
