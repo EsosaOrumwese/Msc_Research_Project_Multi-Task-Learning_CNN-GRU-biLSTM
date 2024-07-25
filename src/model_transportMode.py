@@ -4,12 +4,12 @@ import torch.nn as nn
 
 ## Single Task model for transport mode classification. Binary classification (Driving/Not_driving)
 class BiLSTMNetwork(nn.Module):
-      def __init__(self, input_size, hidden_size, num_layers):
+      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5):
             super(BiLSTMNetwork, self).__init__()
             self.hidden_size = hidden_size
             self.num_layers = num_layers
             # Bi-LSTM layers
-            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
             # Fully connected layer
             self.fc = nn.Linear(hidden_size * 2, 1)  # *2 for bidirection
             self.relu = nn.ReLU()

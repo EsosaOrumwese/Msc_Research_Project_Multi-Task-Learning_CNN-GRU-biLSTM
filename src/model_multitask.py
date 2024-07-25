@@ -5,11 +5,11 @@ from torchvision import models
 
 # Multi-Task Learning model for both driver identification and transport mode classification
 class BiLSTMNetwork(nn.Module):
-      def __init__(self, input_size, hidden_size, num_layers):
+      def __init__(self, input_size, hidden_size, num_layers, dropout):
             super(BiLSTMNetwork, self).__init__()
             self.hidden_size = hidden_size
             self.num_layers = num_layers
-            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
 
       def forward(self, x):
             h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)
@@ -18,7 +18,7 @@ class BiLSTMNetwork(nn.Module):
             return out[:, -1, :]  # Return the last time step
 
 class ResNet50_GRU(nn.Module):
-      def __init__(self, hidden_size, num_layers):
+      def __init__(self, hidden_size, num_layers, dropout):
             super(ResNet50_GRU, self).__init__()
             self.resnet50 = models.resnet50(weights='DEFAULT')
             # freeze weights
@@ -26,8 +26,8 @@ class ResNet50_GRU(nn.Module):
                   param.requires_grad = False
             self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-2])
             self.batch_norm = nn.BatchNorm2d(2048)
-            self.dropout = nn.Dropout(0.5)
-            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=0.5)
+            self.dropout = nn.Dropout(dropout)
+            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout)
 
       def forward(self, x):
             features = self.resnet50(x)
@@ -38,10 +38,10 @@ class ResNet50_GRU(nn.Module):
             return gru_out[:, -1, :]  # Return the last time step
 
 class MultitaskModel(nn.Module):
-      def __init__(self, input_size, hidden_size, num_layers):
+      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5):
             super(MultitaskModel, self).__init__()
-            self.lstm_network = BiLSTMNetwork(input_size, hidden_size, num_layers)
-            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers)
+            self.lstm_network = BiLSTMNetwork(input_size, hidden_size, num_layers, dropout)
+            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers, dropout)
 
             # share fully connected layers
             self.fc1 = nn.Linear(hidden_size * 3, hidden_size)  # Adjusted for the concatenated input size

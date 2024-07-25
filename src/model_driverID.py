@@ -7,7 +7,7 @@ from torchvision import models
 ## `Nor_driving` class is more like a dummy label which represents data that's not associated with any driver or even driving at all 
 
 class ResNet50_GRU(nn.Module):
-      def __init__(self, hidden_size=512, num_classes=4):
+      def __init__(self, hidden_size=512, num_classes=4, num_layers=2, dropout=0.5):
             super(ResNet50_GRU, self).__init__()
 
             self.resnet50 = models.resnet50(weights='DEFAULT')
@@ -21,10 +21,10 @@ class ResNet50_GRU(nn.Module):
             
             # Add Batch Normalization and Dropout layers
             self.batch_norm = nn.BatchNorm2d(2048)
-            self.dropout = nn.Dropout(0.5)
+            self.dropout = nn.Dropout(dropout)
 
             # Define a GRU layer
-            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=2, batch_first=True, dropout=0.5)
+            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout, batch_first=True)
 
             # Define fully connected and sigmoid layers
             self.fc = nn.Linear(hidden_size, num_classes)
