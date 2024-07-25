@@ -23,7 +23,9 @@ class SignalsDataset(Dataset):
             return len(self.data)
 
       def __getitem__(self, idx):
-            x = torch.tensor(self.data[idx], dtype=torch.float32).unsqueeze(0)  # Add channel dimension
+            arr = self.data[idx]
+            arr = (arr - arr.min()) / (arr.max() - arr.min() + 1e-7) # rescale to [0,1]
+            x = torch.tensor(arr, dtype=torch.float32).unsqueeze(0)  # Add channel dimension
             y = torch.tensor(self.labels[idx], dtype=torch.long)
             return x, y
 
