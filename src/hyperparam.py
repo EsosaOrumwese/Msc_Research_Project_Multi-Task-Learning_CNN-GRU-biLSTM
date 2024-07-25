@@ -35,11 +35,11 @@ class RayTuning:
 
             # Validate modelType
             valid_model_types = ['SimpleCNN', 'ResNet50GRU', 'BiLSTM', 'MultiTaskModel']
-            if modelType not in valid_model_types:
-                  raise ValueError(f"Invalid modelType '{modelType}'. Must be one of {valid_model_types}.")
+            if self.modelType not in valid_model_types:
+                  raise ValueError(f"Invalid modelType '{self.modelType}'. Must be one of {valid_model_types}.")
 
             # Handle different criterion cases
-            if modelType == 'MultiTaskModel':
+            if self.modelType == 'MultiTaskModel':
                   if not isinstance(criterion, list) or len(criterion) != 2:
                         raise ValueError("For 'MultiTaskModel', criterion must be a list of two loss functions.")
                   self.criterion_driver = criterion[0]
@@ -50,15 +50,30 @@ class RayTuning:
       # Define a training function that integrates with Ray Tune
       def train_model(self, Config, train_datasets, valid_datasets):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            model = self.model().to(device)
+
+            # initialize model based on its type 
+            if self.modelType == 'ResNet50GRU':
+                  # __init__(self, hidden_size=512, num_classes=4, num_layers=2, dropout=0.5)
+                  model = self.model(hidden_size=Config['hidden_size'], num_layers=Config['num_layers'], 
+                                     dropout=Config['dropout']).to(device)
+            elif self.modelType == 'BiLSTM':
+                  # __init__(self, input_size, hidden_size, num_layers, dropout=0.5):
+                  model = self.model(input_size=6, hidden_size=Config['hidden_size'], 
+                                     num_layers=Config['num_layers'], dropout=Config['dropout']).to(device)
+            elif self.modelType == 'MultiTaskModel':
+                  # __init__(self, input_size, hidden_size, num_layers, dropout=0.5):
+                  model = self.model(input_size=6, hidden_size=Config['hidden_size'], 
+                                     num_layers=Config['num_layers'], dropout=Config['dropout']).to(device)
+            else:
+                  model = self.model().to(device) #SimpleCNN
 
             if Config["optimizer"] == "adam":
                   optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
-            elif Config["optimizer"] == "sgd":
-                  optimizer = optim.SGD(model.parameters(), lr=Config["lr"])
+            elif Config["optimizer"] == "adamw":
+                  optimizer = optim.AdamW(model.parameters(), lr=Config["lr"])
 
-            if Config["scheduler"] == "step":
-                  scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=Config["step_size"], gamma=Config["gamma"])
+            if Config["scheduler"] == "ReduceLROnPlateau":
+                  scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=Config["patience"], factor=Config["gamma"])
             elif Config["scheduler"] == "exp":
                   scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=Config["gamma"])
             elif Config["scheduler"] == "cos":
@@ -86,7 +101,11 @@ class RayTuning:
                   for epoch in range(Config['epochs']):
                         train_loss, train_acc_tr, train_acc_dr = engine.train(train_loader, Config["alpha"], Config["beta"])
                         val_loss, val_acc_tr, val_acc_dr,_ = engine.validate(val_loader, Config["alpha"], Config["beta"])
-
+                        
+                        if Config["scheduler"] == "exp":
+                              engine.scheduler.step()
+                        elif Config["scheduler"] == "ReduceLROnPlateau":
+                              engine.scheduler.step(val_loss)
                         
                         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                               path = os.path.join(temp_checkpoint_dir, "checkpoint.pt")
@@ -99,8 +118,6 @@ class RayTuning:
                                "accuracy_tr":val_acc_tr},
                               checkpoint=checkpoint,
                               )
-                        
-                        engine.scheduler.step()
 
             else:
                   engine = self.engine(model, optimizer, scheduler, self.criterion, device)
@@ -109,6 +126,10 @@ class RayTuning:
                         train_loss, train_acc = engine.train(train_loader)
                         val_loss, val_acc, _ = engine.validate(val_loader)
 
+                        if Config["scheduler"] == "exp":
+                              engine.scheduler.step()
+                        elif Config["scheduler"] == "ReduceLROnPlateau":
+                              engine.scheduler.step(val_loss)
                         
                         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                               path = os.path.join(temp_checkpoint_dir, "checkpoint.pt")
@@ -121,27 +142,39 @@ class RayTuning:
                               checkpoint=checkpoint,
                               )
                         
-                        engine.scheduler.step()
 
             print('Finished Training')
 
       def test_model(self, best_result, test_dataset):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            best_trained_model = self.model().to(device)
+
+            # initialize model based on its type 
+            if self.modelType == 'ResNet50GRU':
+                  best_trained_model = self.model(hidden_size=best_result.config['hidden_size'], num_layers=best_result.config['num_layers'], 
+                                                  dropout=best_result.config['dropout']).to(device)
+            elif self.modelType == 'BiLSTM':
+                  best_trained_model = self.model(input_size=6, hidden_size=best_result.config['hidden_size'], 
+                                     num_layers=best_result.config['num_layers'], dropout=best_result.config['dropout']).to(device)
+            elif self.modelType == 'MultiTaskModel':
+                  best_trained_model = self.model(input_size=6, hidden_size=best_result.config['hidden_size'], 
+                                     num_layers=best_result.config['num_layers'], dropout=best_result.config['dropout']).to(device)
+            else:
+                  best_trained_model = self.model().to(device) #SimpleCNN
 
             checkpoint_path = os.path.join(best_result.checkpoint.to_directory(), "checkpoint.pt")
 
             if best_result.config["optimizer"] == "adam":
                   optimizer = optim.Adam(best_trained_model.parameters(), lr=best_result.config["lr"])
-            elif best_result.config["optimizer"] == "sgd":
-                  optimizer = optim.SGD(best_trained_model.parameters(), lr=best_result.config["lr"])
+            elif best_result.config["optimizer"] == "adamw":
+                  optimizer = optim.AdamW(best_trained_model.parameters(), lr=best_result.config["lr"])
 
-            if best_result.config["scheduler"] == "step":
-                  scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=best_result.config["step_size"], gamma=best_result.config["gamma"])
+            if best_result.config["scheduler"] == "ReduceLROnPlateau":
+                  scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=best_result.config["patience"], factor=best_result.config["gamma"])
             elif best_result.config["scheduler"] == "exp":
                   scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=best_result.config["gamma"])
             elif best_result.config["scheduler"] == "cos":
                   scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=best_result.config["epochs"])
+
 
             model_state, optimizer_state, scheduler_state = torch.load(checkpoint_path)
             best_trained_model.load_state_dict(model_state)
