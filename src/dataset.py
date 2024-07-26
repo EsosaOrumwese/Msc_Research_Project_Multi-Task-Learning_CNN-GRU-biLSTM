@@ -64,14 +64,16 @@ class TransportModeDataset(Dataset):
 
 ## Dataset class for ResNet50-GRU model
 class FeatureMapDataset(Dataset):
-      def __init__(self, base_dir, mode):
+      def __init__(self, base_dir, mode, rescale=True):
             """
             Args:
                base_dir (str): Directory where the feature maps are stored.
                mode (str): Data mode ('train', 'valid', or 'test').
+               rescale: Determines if we rescale then normalize the data or not. (Bool)
             """
             self.base_dir = os.path.abspath(base_dir)
             self.split = mode
+            self.rescale = rescale
             self.metadata = []
 
             # Read the metadata CSV file to get filenames and labels
@@ -94,16 +96,18 @@ class FeatureMapDataset(Dataset):
             # load feature map
             feature_map = np.load(file_path)
 
-            # Rescale feature map to [0, 1]
-            feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
-            feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
-            feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)  # Add epsilon to avoid division by zero
+            if self.rescale:
+                  # Rescale feature map to [0, 1]
+                  feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
+                  feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
+                  feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)  # Add epsilon to avoid division by zero
             
             # Convert to tensor
             feature_map = torch.tensor(feature_map, dtype=torch.float32)
             
-            # Normalize using ImageNet mean and std
-            feature_map = self.normalize(feature_map)
+            if self.rescale:
+                  # Normalize using ImageNet mean and std
+                  feature_map = self.normalize(feature_map)
 
             return feature_map, torch.tensor(label, dtype=torch.float32)
 

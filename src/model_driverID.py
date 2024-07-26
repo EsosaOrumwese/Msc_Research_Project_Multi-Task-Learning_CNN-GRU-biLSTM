@@ -16,6 +16,10 @@ class ResNet50_GRU(nn.Module):
             for param in self.resnet50.parameters():
                   param.requires_grad = False
 
+            # Optionally unfreeze some of the last layers
+            for param in self.resnet50.layer4.parameters():
+                  param.requires_grad = True
+
             # Remove the fully connected layer of ResNet-50
             self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-2])
             
