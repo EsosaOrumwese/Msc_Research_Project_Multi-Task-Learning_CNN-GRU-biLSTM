@@ -18,14 +18,17 @@ class SignalsDataset(Dataset):
             """
             self.data = data[:, feature_index, :]  # Select the specified feature
             self.labels = labels
+            #self.normmean = torch.tensor([0.485, 0.456, 0.406])[feature_index]
+            #self.normstd = torch.tensor([0.229, 0.224, 0.225])[feature_index]
 
       def __len__(self):
             return len(self.data)
 
       def __getitem__(self, idx):
             arr = self.data[idx]
-            arr = (arr - arr.min()) / (arr.max() - arr.min() + 1e-7) # rescale to [0,1]
+            #arr = (arr - arr.min()) / (arr.max() - arr.min() + 1e-7) # rescale to [0,1]
             x = torch.tensor(arr, dtype=torch.float32).unsqueeze(0)  # Add channel dimension
+            #x = (x - self.normmean)/self.normstd
             y = torch.tensor(self.labels[idx], dtype=torch.long)
             return x, y
 
