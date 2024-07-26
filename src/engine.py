@@ -173,11 +173,10 @@ class simpleCNN_engine:
             train_accuracies = []
 
             for epoch in range(epochs):
-                  for dl in (val_loader):
-                        # training
-                        train_loss, train_accuracy = self.train(dl)
-                        train_losses.append(train_loss)
-                        train_accuracies.append(train_accuracy)
+                  # training
+                  train_loss, train_accuracy = self.train(val_loader)
+                  train_losses.append(train_loss)
+                  train_accuracies.append(train_accuracy)
 
 
                   # Update learning rate scheduler
