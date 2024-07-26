@@ -88,7 +88,11 @@ class simpleCNN_engine:
                   val_losses.append(val_loss)
                   val_accuracies.append(val_accuracy)
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%')
 
@@ -161,22 +165,28 @@ class simpleCNN_engine:
             accuracy = correct_agreements / total_samples
             print(f"Agreement accuracy among models: {accuracy}")
 
-      def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
-            '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
-            the original test set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
+      def train_endgame(self, val_loader, epochs, save_path=None):
+            '''Trains the model on the validation set after training on main training set is complete. This is because, I still have
+            the original val set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
             saved checkpoint'''
             train_losses = []
             train_accuracies = []
 
             for epoch in range(epochs):
-                  for dl in (val_loader, test_loader):
+                  for dl in (val_loader):
                         # training
                         train_loss, train_accuracy = self.train(dl)
                         train_losses.append(train_loss)
                         train_accuracies.append(train_accuracy)
 
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        # Compute validation loss for updating scheduler
+                        val_loss, _ , _= self.validate(val_loader)
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
 
@@ -278,7 +288,11 @@ class biLSTM_engine:
                   val_losses.append(val_loss)
                   val_accuracies.append(val_accuracy)
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%')
 
@@ -331,7 +345,12 @@ class biLSTM_engine:
                         train_accuracies.append(train_accuracy)
 
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        val_loss, _, _ = self.train(val_loader)
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
 
@@ -431,7 +450,11 @@ class ResNet50_GRU_engine:
                   val_losses.append(val_loss)
                   val_accuracies.append(val_accuracy)
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%')
 
@@ -480,7 +503,12 @@ class ResNet50_GRU_engine:
                         train_accuracies.append(train_accuracy)
 
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        val_loss, _, _ = self.validate(val_loader)
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'   Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%')
 
@@ -628,7 +656,11 @@ class MTL_engine:
                   val_acc_transport_history.append(val_acc_transport)
                   val_acc_driver_history.append(val_acc_driver)
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'Epoch [{epoch+1}/{epochs}], '
                         f'Train Loss: {train_loss_history[-1]:.4f}, Train Transport Acc: {train_acc_transport_history[-1]:.2f}%, '
@@ -704,7 +736,12 @@ class MTL_engine:
                         train_acc_transport_history.append(train_acc_transport)
                         train_acc_driver_history.append(train_acc_driver)
 
-                  self.scheduler.step()
+                  # Update learning rate scheduler
+                  if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        val_loss, _, _, _ = self.validate(val_loader, alpha, beta)
+                        self.scheduler.step(val_loss)
+                  else:
+                        self.scheduler.step()
 
                   print(f'Epoch [{epoch+1}/{epochs}], '
                         f'Train Loss: {train_loss_history[-1]:.4f}, Train Transport Acc: {train_acc_transport_history[-1]:.2f}%, '
