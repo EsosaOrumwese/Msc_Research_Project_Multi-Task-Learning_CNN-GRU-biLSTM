@@ -68,9 +68,9 @@ class RayTuning:
                   model = self.model().to(device) #SimpleCNN
 
             if Config["optimizer"] == "adam":
-                  optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
+                  optimizer = optim.Adam(model.parameters(), lr=Config["lr"], weight_decay=Config["weight_decay"])
             elif Config["optimizer"] == "adamw":
-                  optimizer = optim.AdamW(model.parameters(), lr=Config["lr"])
+                  optimizer = optim.AdamW(model.parameters(), lr=Config["lr"], weight_decay=Config["weight_decay"])
 
             if Config["scheduler"] == "ReduceLROnPlateau":
                   scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=Config["patience"], factor=Config["gamma"])
@@ -164,9 +164,11 @@ class RayTuning:
             checkpoint_path = os.path.join(best_result.checkpoint.to_directory(), "checkpoint.pt")
 
             if best_result.config["optimizer"] == "adam":
-                  optimizer = optim.Adam(best_trained_model.parameters(), lr=best_result.config["lr"])
+                  optimizer = optim.Adam(best_trained_model.parameters(), lr=best_result.config["lr"], 
+                                         weight_decay=best_result.config["weight_decay"])
             elif best_result.config["optimizer"] == "adamw":
-                  optimizer = optim.AdamW(best_trained_model.parameters(), lr=best_result.config["lr"])
+                  optimizer = optim.AdamW(best_trained_model.parameters(), lr=best_result.config["lr"],
+                                          weight_decay=best_result.config["weight_decay"])
 
             if best_result.config["scheduler"] == "ReduceLROnPlateau":
                   scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=best_result.config["patience"], factor=best_result.config["gamma"])
@@ -212,8 +214,8 @@ class RayTuning:
                         resources={"cpu": 2, "gpu": 1}
                   ),
                   tune_config=tune.TuneConfig(
-                        metric="accuracy",
-                        mode="max",
+                        metric="loss",
+                        mode="min",
                         scheduler=scheduler,
                         num_samples=num_samples,
                         trial_dirname_creator=custom_trial_dirname_creator
@@ -223,7 +225,7 @@ class RayTuning:
             )
             results = tuner.fit()
             
-            best_result = results.get_best_result("accuracy", "max")
+            best_result = results.get_best_result("loss", "min")
 
             print("Best trial config: {}".format(best_result.config))
             print("Best trial final validation loss: {}".format(
