@@ -18,6 +18,11 @@ class simpleCNN_engine:
       def safe_save_model(self, save_path, epoch, loss):
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
+
+            # only save after every 5th epoch
+            if epoch % 5 !=0:
+                  return 
+            
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -217,6 +222,11 @@ class biLSTM_engine:
       def safe_save_model(self, save_path, epoch, loss):
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
+
+            # only save after every 5th epoch
+            if epoch % 5 !=0:
+                  return 
+            
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -381,6 +391,11 @@ class ResNet50_GRU_engine:
       def safe_save_model(self, save_path, epoch, loss):
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
+            
+            # only save after every 5th epoch
+            if epoch % 5 !=0:
+                  return 
+            
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -542,6 +557,11 @@ class MTL_engine:
       def safe_save_model(self, save_path, epoch, loss):
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
+
+            # only save after every 5th epoch
+            if epoch % 5 !=0:
+                  return 
+            
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
