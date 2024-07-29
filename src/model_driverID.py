@@ -7,7 +7,7 @@ from torchvision import models
 ## `Nor_driving` class is more like a dummy label which represents data that's not associated with any driver or even driving at all 
 
 class ResNet50_GRU(nn.Module):
-      def __init__(self, hidden_size=512, num_classes=4, num_layers=2, dropout=0.5):
+      def __init__(self, hidden_size=512, num_classes=4, num_layers=2, dropout=0.5, unfreeze_L3=False, unfreeze_L4=True):
             super(ResNet50_GRU, self).__init__()
 
             self.resnet50 = models.resnet50(weights='DEFAULT')
@@ -18,7 +18,10 @@ class ResNet50_GRU(nn.Module):
 
             # Optionally unfreeze some of the last layers
             for param in self.resnet50.layer4.parameters():
-                  param.requires_grad = True
+                  param.requires_grad = unfreeze_L4
+
+            for param in self.resnet50.layer3.parameters():
+                  param.requires_grad = unfreeze_L3
 
             # Remove the fully connected layer of ResNet-50
             self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-2])

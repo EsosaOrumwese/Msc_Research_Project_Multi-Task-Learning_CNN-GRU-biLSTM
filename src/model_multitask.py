@@ -18,12 +18,20 @@ class BiLSTMNetwork(nn.Module):
             return out[:, -1, :]  # Return the last time step
 
 class ResNet50_GRU(nn.Module):
-      def __init__(self, hidden_size, num_layers, dropout):
+      def __init__(self, hidden_size, num_layers, dropout, unfreeze_L3, unfreeze_L4):
             super(ResNet50_GRU, self).__init__()
             self.resnet50 = models.resnet50(weights='DEFAULT')
             # freeze weights
             for param in self.resnet50.parameters():
                   param.requires_grad = False
+
+            # Optionally unfreeze some of the last layers
+            for param in self.resnet50.layer4.parameters():
+                  param.requires_grad = unfreeze_L4
+
+            for param in self.resnet50.layer3.parameters():
+                  param.requires_grad = unfreeze_L3
+                  
             self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-2])
             self.batch_norm = nn.BatchNorm2d(2048)
             self.dropout = nn.Dropout(dropout)
@@ -38,10 +46,10 @@ class ResNet50_GRU(nn.Module):
             return gru_out[:, -1, :]  # Return the last time step
 
 class MultitaskModel(nn.Module):
-      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5):
+      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5, unfreeze_L3=False, unfreeze_L4=True):
             super(MultitaskModel, self).__init__()
             self.lstm_network = BiLSTMNetwork(input_size, hidden_size, num_layers, dropout)
-            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers, dropout)
+            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers, dropout, unfreeze_L3=False, unfreeze_L4=True)
 
             # share fully connected layers
             self.fc1 = nn.Linear(hidden_size * 3, hidden_size)  # Adjusted for the concatenated input size
