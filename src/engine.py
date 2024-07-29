@@ -16,7 +16,8 @@ class simpleCNN_engine:
             self.device = device
 
       def safe_save_model(self, save_path, epoch, loss):
-            temp_save_path = save_path + ".tmp"
+            epoch_save_path = save_path + f"_epoch_{epoch}.pt"
+            temp_save_path = epoch_save_path + ".tmp"
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -24,7 +25,7 @@ class simpleCNN_engine:
                   'scheduler_state_dict': self.scheduler.state_dict(),
                   'loss': loss,
             }, temp_save_path)
-            os.replace(temp_save_path, save_path)
+            os.replace(temp_save_path, epoch_save_path)
 
       def train(self, train_loader):
             self.model.train()
@@ -214,7 +215,8 @@ class biLSTM_engine:
             self.device = device
 
       def safe_save_model(self, save_path, epoch, loss):
-            temp_save_path = save_path + ".tmp"
+            epoch_save_path = save_path + f"_epoch_{epoch}.pt"
+            temp_save_path = epoch_save_path + ".tmp"
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -222,7 +224,7 @@ class biLSTM_engine:
                   'scheduler_state_dict': self.scheduler.state_dict(),
                   'loss': loss,
             }, temp_save_path)
-            os.replace(temp_save_path, save_path)
+            os.replace(temp_save_path, epoch_save_path)
 
       def train(self, train_loader):
             self.model.train()
@@ -377,7 +379,8 @@ class ResNet50_GRU_engine:
             self.device = device
 
       def safe_save_model(self, save_path, epoch, loss):
-            temp_save_path = save_path + ".tmp"
+            epoch_save_path = save_path + f"_epoch_{epoch}.pt"
+            temp_save_path = epoch_save_path + ".tmp"
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -385,7 +388,7 @@ class ResNet50_GRU_engine:
                   'scheduler_state_dict': self.scheduler.state_dict(),
                   'loss': loss,
             }, temp_save_path)
-            os.replace(temp_save_path, save_path)
+            os.replace(temp_save_path, epoch_save_path)
 
       def train(self, train_loader):
             self.model.train()
@@ -537,7 +540,8 @@ class MTL_engine:
             self.device = device
 
       def safe_save_model(self, save_path, epoch, loss):
-            temp_save_path = save_path + ".tmp"
+            epoch_save_path = save_path + f"_epoch_{epoch}.pt"
+            temp_save_path = epoch_save_path + ".tmp"
             torch.save({
                   'epoch': epoch,
                   'model_state_dict': self.model.state_dict(),
@@ -545,7 +549,7 @@ class MTL_engine:
                   'scheduler_state_dict': self.scheduler.state_dict(),
                   'loss': loss,
             }, temp_save_path)
-            os.replace(temp_save_path, save_path)
+            os.replace(temp_save_path, epoch_save_path)
 
       def train(self, train_loader, alpha, beta):
             self.model.train()
