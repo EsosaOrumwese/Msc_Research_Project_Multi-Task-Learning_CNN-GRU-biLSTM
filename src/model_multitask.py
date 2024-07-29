@@ -62,10 +62,10 @@ class MultitaskModel(nn.Module):
 
             # Task-specific fully connected layers
             self.fc_driver = nn.Linear(hidden_size, 4) # now we're looking at multiclass classification
-            self.fc_transport = nn.Linear(hidden_size, 1)
+            self.fc_transport = nn.Linear(hidden_size, 8) # also looking at multiclass here (8 transport modes)
             
             # sigmoid for binary classification
-            self.sigmoid = nn.Sigmoid()
+            #self.sigmoid = nn.Sigmoid()
             # self.softmax = nn.Softmax(dim=1)  # No need since I'm using CrossEntropyLoss which applies it internally
 
       def forward(self, x_lstm, x_resnet): #,flags): 
@@ -91,6 +91,6 @@ class MultitaskModel(nn.Module):
 
             # Transport classification branch
             transport_gru_out, _ = self.gru_transport(shared_out.unsqueeze(1))
-            transport_out = self.sigmoid(self.fc_transport(transport_gru_out[:, -1, :]))
+            transport_out = self.fc_transport(transport_gru_out[:, -1, :])
             
             return transport_out, driver_out

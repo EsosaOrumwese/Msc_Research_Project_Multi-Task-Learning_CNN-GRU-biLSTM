@@ -11,7 +11,7 @@ class BiLSTMNetwork(nn.Module):
             # Bi-LSTM layers
             self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
             # Fully connected layer
-            self.fc = nn.Linear(hidden_size * 2, 1)  # *2 for bidirection
+            self.fc = nn.Linear(hidden_size * 2, 8)  # *2 for bidirection, 8 classes of transport mode
             self.relu = nn.ReLU()
 
       def forward(self, x):
