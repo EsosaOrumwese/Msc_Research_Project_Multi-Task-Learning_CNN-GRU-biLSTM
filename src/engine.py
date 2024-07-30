@@ -223,8 +223,8 @@ class biLSTM_engine:
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
 
-            # only save after every 10th epoch
-            if epoch % 10 !=0:
+            # only save after every 5th epoch
+            if epoch % 5 !=0:
                   return 
             
             torch.save({
