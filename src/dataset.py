@@ -50,7 +50,7 @@ class TransportModeDataset(Dataset):
             with open(csv_file, mode='r') as file:
                   reader = csv.reader(file)
                   next(reader)  # Skip header row
-                  self.metadata = [(row[0], int(row[1])) for row in reader]
+                  self.metadata = [(row[0], int(float(row[1]))) for row in reader]
 
       def __len__(self):
             return len(self.metadata)
@@ -295,7 +295,7 @@ class CombinedDataset(Dataset):
             with open(csv_file, mode='r') as file:
                   reader = csv.reader(file)
                   next(reader)  # Skip header row
-                  self.lstm_metadata = [(row[0], int(row[1])) for row in reader]
+                  self.lstm_metadata = [(row[0], int(float(row[1]))) for row in reader]
 
             # Normalization transform to ImageNet mean and std
             self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

@@ -223,8 +223,8 @@ class biLSTM_engine:
             epoch_save_path = save_path + f"_epoch_{epoch}.pt"
             temp_save_path = epoch_save_path + ".tmp"
 
-            # only save after every 5th epoch
-            if epoch % 5 !=0:
+            # only save after every 10th epoch
+            if epoch % 10 !=0:
                   return 
             
             torch.save({
@@ -247,7 +247,7 @@ class biLSTM_engine:
 
                   self.optimizer.zero_grad()
                   outputs = self.model(features)
-                  loss = self.criterion(outputs, labels)
+                  loss = self.criterion(outputs, labels.long())
                   loss.backward()
                   self.optimizer.step()
 
@@ -271,7 +271,7 @@ class biLSTM_engine:
                   for features, labels in val_loader:
                         features, labels = features.to(self.device), labels.to(self.device)
                         outputs = self.model(features)
-                        loss = self.criterion(outputs, labels)
+                        loss = self.criterion(outputs, labels.long())
                         val_loss += loss.item()
                         _, predicted = torch.max(outputs, 1)
                         total += labels.size(0)
@@ -329,7 +329,7 @@ class biLSTM_engine:
                   for features, labels in test_loader:
                         features, labels = features.to(self.device), labels.to(self.device)
                         outputs = self.model(features)
-                        loss = self.criterion(outputs, labels)
+                        loss = self.criterion(outputs, labels.long())
                         test_loss += loss.item()
                         _, predicted = torch.max(outputs, 1)
                         total += labels.size(0)
