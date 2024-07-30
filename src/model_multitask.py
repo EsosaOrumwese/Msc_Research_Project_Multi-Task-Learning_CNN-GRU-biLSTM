@@ -9,7 +9,8 @@ class BiLSTMNetwork(nn.Module):
             super(BiLSTMNetwork, self).__init__()
             self.hidden_size = hidden_size
             self.num_layers = num_layers
-            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=0 if num_layers == 1 else dropout, 
+                                batch_first=True, bidirectional=True)
 
       def forward(self, x):
             h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)
@@ -35,7 +36,8 @@ class ResNet50_GRU(nn.Module):
             self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-2])
             self.batch_norm = nn.BatchNorm2d(2048)
             self.dropout = nn.Dropout(dropout)
-            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout)
+            self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, 
+                              batch_first=True, dropout=0 if num_layers == 1 else dropout)
 
       def forward(self, x):
             features = self.resnet50(x)
@@ -57,8 +59,10 @@ class MultitaskModel(nn.Module):
             self.relu = nn.ReLU()
 
             # task-specific GRUs
-            self.gru_driver = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, dropout=0.5)
-            self.gru_transport = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, dropout=0.5)
+            self.gru_driver = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, 
+                                     dropout=0 if num_layers == 1 else dropout)
+            self.gru_transport = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, 
+                                        dropout=0 if num_layers == 1 else dropout)
 
             # Task-specific fully connected layers
             self.fc_driver = nn.Linear(hidden_size, 4) # now we're looking at multiclass classification
