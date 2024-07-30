@@ -272,7 +272,7 @@ class FeatureMapDatasetJITTER(Dataset):
 
 ## Dataset for MultiTask model
 class CombinedDataset(Dataset):
-      def __init__(self, fmap_base_dir, lstm_base_dir, mode):
+      def __init__(self, fmap_base_dir, lstm_base_dir, mode, rescale=False, augment=False):
             """
             Args:
                fmap_base_dir (str): Directory where the feature maps are stored.
@@ -284,6 +284,8 @@ class CombinedDataset(Dataset):
             self.split = mode
             self.fmap_metadata = []
             self.lstm_metadata = []
+            self.rescale = rescale
+            self.augment = augment
 
             csv_file = os.path.join(self.fmap_base_dir, self.split, 'metadata.csv')
             with open(csv_file, mode='r') as file:
@@ -300,6 +302,13 @@ class CombinedDataset(Dataset):
             # Normalization transform to ImageNet mean and std
             self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
+            if self.augment:
+                  self.augmentation_transforms = transforms.Compose([
+                  transforms.RandomHorizontalFlip(),
+                  transforms.RandomApply([transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05)], p=0.5),
+                  transforms.Resize((224, 224))
+                  ])
+
       def __len__(self):
             return len(self.lstm_metadata) # both have the same length so it doesn't matter
 
@@ -309,16 +318,19 @@ class CombinedDataset(Dataset):
             file_path_f = os.path.join(self.fmap_base_dir, self.split, filename_f)
             feature_map = np.load(file_path_f)
 
-            # Rescale feature map to [0, 1]
-            feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
-            feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
-            feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)  # Add epsilon to avoid division by zero
+            if self.rescale:
+                  feature_map_min = feature_map.min(axis=(1, 2), keepdims=True)
+                  feature_map_max = feature_map.max(axis=(1, 2), keepdims=True)
+                  feature_map = (feature_map - feature_map_min) / (feature_map_max - feature_map_min + 1e-7)
             
             # Convert to tensor
             feature_map = torch.tensor(feature_map, dtype=torch.float32)
             
-            # Normalize using ImageNet mean and std
-            feature_map = self.normalize(feature_map)            
+            if self.augment:
+                  feature_map = self._apply_augmentations(feature_map)
+
+            if self.rescale:
+                  feature_map = self.normalize(feature_map)           
 
             ## lstm sequences
             filename_l, label_l = self.lstm_metadata[idx]
@@ -331,3 +343,9 @@ class CombinedDataset(Dataset):
                   'feature_maps': feature_map,
                   'fmap_labels': torch.tensor(label_f, dtype=torch.float32)
             }
+
+      def _apply_augmentations(self, feature_map):
+            feature_map = transforms.ToPILImage()(feature_map)
+            feature_map = self.augmentation_transforms(feature_map)
+            feature_map = transforms.ToTensor()(feature_map)
+            return feature_map
