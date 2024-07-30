@@ -48,10 +48,10 @@ class ResNet50_GRU(nn.Module):
             return gru_out[:, -1, :]  # Return the last time step
 
 class MultitaskModel(nn.Module):
-      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5, unfreeze_L3=False, unfreeze_L4=True):
+      def __init__(self, input_size, hidden_size, num_layers, dropout=0.5, unfreeze_L3=True, unfreeze_L4=True):
             super(MultitaskModel, self).__init__()
             self.lstm_network = BiLSTMNetwork(input_size, hidden_size, num_layers, dropout)
-            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers, dropout, unfreeze_L3=False, unfreeze_L4=True)
+            self.resnet_gru_network = ResNet50_GRU(hidden_size, num_layers, dropout, unfreeze_L3, unfreeze_L4)
 
             # share fully connected layers
             self.fc1 = nn.Linear(hidden_size * 3, hidden_size)  # Adjusted for the concatenated input size
@@ -68,16 +68,10 @@ class MultitaskModel(nn.Module):
             self.fc_driver = nn.Linear(hidden_size, 4) # now we're looking at multiclass classification
             self.fc_transport = nn.Linear(hidden_size, 8) # also looking at multiclass here (8 transport modes)
             
-            # sigmoid for binary classification
-            #self.sigmoid = nn.Sigmoid()
-            # self.softmax = nn.Softmax(dim=1)  # No need since I'm using CrossEntropyLoss which applies it internally
 
       def forward(self, x_lstm, x_resnet): #,flags): 
             lstm_out = self.lstm_network(x_lstm)
             resnet_gru_out = self.resnet_gru_network(x_resnet)
-            
-            # mask the resnet_gru_out based on flags (Why? Not all datapoints are to be trained as they might not be driving data)
-            #resnet_gru_out = resnet_gru_out * flags.view(-1, 1)
 
             # combine lstm_out and resnet_gru_out, considering masked values
             combined_features = torch.cat((lstm_out, resnet_gru_out), dim=1)

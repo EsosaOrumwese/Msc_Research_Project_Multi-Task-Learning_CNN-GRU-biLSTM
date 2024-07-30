@@ -668,7 +668,7 @@ class MTL_engine:
 
             return val_loss, val_acc_transport, val_acc_driver, total_loss
       
-      def train_and_evaluate(self, train_loader, val_loader, epochs, 
+      def train_validation(self, train_loader, val_loader, epochs, 
                              alpha=1.0, beta=1.0, save_path=None):
             train_loss_history = []
             val_loss_history = []
