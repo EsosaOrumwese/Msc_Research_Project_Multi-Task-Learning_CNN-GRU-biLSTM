@@ -248,7 +248,13 @@ class biLSTM_engine:
                   self.optimizer.zero_grad()
                   outputs = self.model(features)
                   loss = self.criterion(outputs, labels.long())
+
+                  if torch.isnan(loss) or torch.isinf(loss):
+                        print("Warning: NaN or Inf detected in loss. Skipping this batch.")
+                        continue
+
                   loss.backward()
+                  torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                   self.optimizer.step()
 
                   running_loss += loss.item()
@@ -591,6 +597,10 @@ class MTL_engine:
                   # Compute transport classification loss
                   loss_transport = self.criterion_transport(transport_out, seq_labels.long())
 
+                  if torch.isnan(loss_transport) or torch.isinf(loss_transport):
+                        print("Warning: NaN or Inf detected in transport loss. Skipping this batch.")
+                        continue
+
                   # Compute driver identification loss
                   loss_driver = self.criterion_driver(driver_out, fmap_labels.long())
 
@@ -598,6 +608,7 @@ class MTL_engine:
                   # print(loss_transport, loss_driver)
                   total_loss = alpha * loss_transport + beta * loss_driver
                   total_loss.backward()
+                  torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
                   # Perform optimization step
                   self.optimizer.step()
