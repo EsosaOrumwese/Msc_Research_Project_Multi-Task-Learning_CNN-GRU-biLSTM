@@ -302,11 +302,23 @@ class CombinedDataset(Dataset):
             # Normalization transform to ImageNet mean and std
             self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
+            # if self.augment:
+            #       self.augmentation_transforms = transforms.Compose([
+            #       transforms.RandomHorizontalFlip(),
+            #       transforms.RandomApply([transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05)], p=0.5),
+            #       transforms.Resize((224, 224))
+            #       ])
+
+            ## added more transformations
             if self.augment:
                   self.augmentation_transforms = transforms.Compose([
-                  transforms.RandomHorizontalFlip(),
-                  transforms.RandomApply([transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05)], p=0.5),
-                  transforms.Resize((224, 224))
+                        transforms.RandomHorizontalFlip(p=0.5),
+                        transforms.RandomApply([transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05)], p=0.5),
+                        transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),  # Adjust scale if necessary
+                        transforms.RandomRotation(15),
+                        transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.3),
+                        transforms.RandomApply([transforms.RandomAffine(degrees=0, translate=(0.1, 0.1))], p=0.3),
+                        transforms.Resize((224, 224)),  # Ensure final size is consistent
                   ])
 
       def __len__(self):

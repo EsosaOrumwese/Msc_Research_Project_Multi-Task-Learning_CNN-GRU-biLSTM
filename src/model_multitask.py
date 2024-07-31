@@ -60,8 +60,10 @@ class MultitaskModel(nn.Module):
             # share fully connected layers
             self.fc1 = nn.Linear(hidden_size * 3, hidden_size)  # Adjusted for the concatenated input size
             self.fc1_bn = nn.BatchNorm1d(hidden_size)  # Batch normalization for shared layers
+            self.fc1_dropout = nn.Dropout(dropout)  # Dropout for shared layers
             self.fc2 = nn.Linear(hidden_size, hidden_size)
             self.fc2_bn = nn.BatchNorm1d(hidden_size)  # Batch normalization for shared layers
+            self.fc2_dropout = nn.Dropout(dropout)  # Dropout for shared layers
             self.relu = nn.ReLU()
 
             # task-specific GRUs
@@ -86,9 +88,11 @@ class MultitaskModel(nn.Module):
             shared_out = self.fc1(combined_features)
             shared_out = self.fc1_bn(shared_out)  # Apply batch normalization
             shared_out = self.relu(shared_out)
+            shared_out = self.fc1_dropout(shared_out)  # Apply dropout
             shared_out = self.fc2(shared_out)
             shared_out = self.fc2_bn(shared_out)  # Apply batch normalization
             shared_out = self.relu(shared_out)
+            shared_out = self.fc2_dropout(shared_out)  # Apply dropout
 
             ## task specific branches
             # Driver identification branch
