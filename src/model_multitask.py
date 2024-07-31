@@ -11,12 +11,14 @@ class BiLSTMNetwork(nn.Module):
             self.num_layers = num_layers
             self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=0 if num_layers == 1 else dropout, 
                                 batch_first=True, bidirectional=True)
+            self.batch_norm = nn.BatchNorm1d(hidden_size * 2)  # BiLSTM output size
 
       def forward(self, x):
             h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)
             c0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size).to(x.device)
             out, _ = self.lstm(x, (h0, c0))
-            return out[:, -1, :]  # Return the last time step
+            out = self.batch_norm(out[:, -1, :])  # Apply batch normalization
+            return out # Return the last time step
 
 class ResNet50_GRU(nn.Module):
       def __init__(self, hidden_size, num_layers, dropout, unfreeze_L3, unfreeze_L4):
@@ -38,6 +40,7 @@ class ResNet50_GRU(nn.Module):
             self.dropout = nn.Dropout(dropout)
             self.gru = nn.GRU(input_size=2048, hidden_size=hidden_size, num_layers=num_layers, 
                               batch_first=True, dropout=0 if num_layers == 1 else dropout)
+            self.output_norm = nn.BatchNorm1d(hidden_size)  # Normalize GRU output
 
       def forward(self, x):
             features = self.resnet50(x)
@@ -45,7 +48,8 @@ class ResNet50_GRU(nn.Module):
             features = self.dropout(features)
             features = features.view(x.size(0), 7*7, 2048)
             gru_out, _ = self.gru(features)
-            return gru_out[:, -1, :]  # Return the last time step
+            gru_out = self.output_norm(gru_out[:, -1, :])  # Apply batch normalization
+            return gru_out
 
 class MultitaskModel(nn.Module):
       def __init__(self, input_size, hidden_size, num_layers, dropout=0.5, unfreeze_L3=True, unfreeze_L4=True):
@@ -55,13 +59,15 @@ class MultitaskModel(nn.Module):
 
             # share fully connected layers
             self.fc1 = nn.Linear(hidden_size * 3, hidden_size)  # Adjusted for the concatenated input size
+            self.fc1_bn = nn.BatchNorm1d(hidden_size)  # Batch normalization for shared layers
             self.fc2 = nn.Linear(hidden_size, hidden_size)
+            self.fc2_bn = nn.BatchNorm1d(hidden_size)  # Batch normalization for shared layers
             self.relu = nn.ReLU()
 
             # task-specific GRUs
-            self.gru_driver = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, 
+            self.gru_driver = nn.GRU(hidden_size, hidden_size, num_layers=num_layers, batch_first=True, 
                                      dropout=0 if num_layers == 1 else dropout)
-            self.gru_transport = nn.GRU(hidden_size, hidden_size, num_layers=2, batch_first=True, 
+            self.gru_transport = nn.GRU(hidden_size, hidden_size, num_layers=num_layers, batch_first=True, 
                                         dropout=0 if num_layers == 1 else dropout)
 
             # Task-specific fully connected layers
@@ -78,8 +84,10 @@ class MultitaskModel(nn.Module):
 
             # shared fully connected layers
             shared_out = self.fc1(combined_features)
+            shared_out = self.fc1_bn(shared_out)  # Apply batch normalization
             shared_out = self.relu(shared_out)
             shared_out = self.fc2(shared_out)
+            shared_out = self.fc2_bn(shared_out)  # Apply batch normalization
             shared_out = self.relu(shared_out)
 
             ## task specific branches

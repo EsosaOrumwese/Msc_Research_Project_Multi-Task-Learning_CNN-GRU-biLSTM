@@ -78,7 +78,7 @@ class MTL_plot:
       def __init__(self) -> None:
             pass
 
-      def plot_history(hist):
+      def plot_history(self, hist):
             '''Plots history of model. `hist` is a list which contains;
             train_loss_history, val_loss_history, train_acc_transport_history,
             val_acc_transport_history, train_acc_driver_history, val_acc_driver_history
@@ -110,7 +110,7 @@ class MTL_plot:
             #plt.savefig('figures/14_17.png', dpi=300)
             plt.show()
 
-      def plot_endgame_history(endgame_hist, history):
+      def plot_endgame_history(self, endgame_hist, history):
             '''Plots history of model after endgame training. `endgame_hist` is a list which contains;
             `loss_hist_train`, `accuracy_hist_train`. While history is the former list which contains
             the older history. Relevant histories are concatenated and plotted.

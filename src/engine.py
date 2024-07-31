@@ -740,7 +740,7 @@ class MTL_engine:
                         test_loss += total_loss.item()#.cpu().numpy()
 
                         # Calculate accuracies
-                        predicted_transport = torch.max(transport_out, 1)
+                        _, predicted_transport = torch.max(transport_out, 1)
                         correct_test_transport += (predicted_transport == seq_labels).sum().item()
                         total_test_transport += seq_labels.size(0)
 
