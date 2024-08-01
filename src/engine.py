@@ -106,7 +106,7 @@ class simpleCNN_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, loss)
+                                    self.safe_save_model(save_path, epoch+1, loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -199,7 +199,7 @@ class simpleCNN_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    self.safe_save_model(save_path, epoch+1, train_loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -317,7 +317,7 @@ class biLSTM_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, loss)
+                                    self.safe_save_model(save_path, epoch+1, loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -375,7 +375,7 @@ class biLSTM_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    self.safe_save_model(save_path, epoch+1, train_loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -485,7 +485,7 @@ class ResNet50_GRU_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, loss)
+                                    self.safe_save_model(save_path, epoch+1, loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -539,7 +539,7 @@ class ResNet50_GRU_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    self.safe_save_model(save_path, epoch+1, train_loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -706,7 +706,7 @@ class MTL_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, total_loss)
+                                    self.safe_save_model(save_path, epoch+1, total_loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
@@ -785,7 +785,7 @@ class MTL_engine:
                   if save_path:
                         for _ in range(5):  # Retry up to 5 times
                               try:
-                                    self.safe_save_model(save_path, epoch, train_loss)
+                                    self.safe_save_model(save_path, epoch+1, train_loss)
                                     break
                               except Exception as e:
                                     print(f"Error saving model: {e}. Retrying in 1 second.")
