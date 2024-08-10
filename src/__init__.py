@@ -2,6 +2,7 @@ from .config import *
 from .dataset import *
 from .engine import *
 from .hyperparam import *
+from .metrics import *
 from .model_driverID import *
 from .model_transportMode import *
 from .model_multitask import *

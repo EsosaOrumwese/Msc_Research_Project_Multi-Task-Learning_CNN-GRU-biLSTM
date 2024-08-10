@@ -144,3 +144,96 @@ class MTL_plot:
 
             #plt.savefig('figures/14_17.png', dpi=300)
             plt.show()
+
+#### Metric Plots ######
+def plot_precRec_curve(precision, recall, class_labels, num_classes, title="Precision-Recall Curve", figsize=(8,4)):
+      '''Plot precision and curve'''
+      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+
+      # Plot Precision-Recall curve
+      plt.figure(figsize=figsize)
+      for i in range(num_classes):
+            plt.plot(recall[i], precision[i], lw=2, label=class_labels[i], color=cmap[i])
+
+      plt.xlabel("Recall")
+      plt.ylabel("Precision")
+      plt.title(title)
+      plt.legend(loc="best")
+      plt.grid(True)
+      plt.show()
+
+def plot_F1rec_curve(recall, f1_scores, class_labels, num_classes, title="F1-Score vs. Recall", figsize=(8,4)):
+      '''Plots F1-Recall curve'''
+      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+
+      # Plot F1-Score curve
+      plt.figure(figsize=figsize)
+      for i in range(num_classes):
+            plt.plot(recall[i], f1_scores[i], lw=2, label=class_labels[i], color=cmap[i])
+
+      plt.xlabel("Recall")
+      plt.ylabel("F1 Score")
+      plt.title(title)
+      plt.legend(loc="best")
+      plt.grid(True)
+      plt.show()
+
+def plot_learning_curve(train_loss, val_loss, title='Learning Curves with Confidence Intervals', legend_text='XX', figsize=(8,4)):
+      # Compute mean and standard deviation
+      train_mean = np.mean(train_loss, axis=0)
+      train_std = np.std(train_loss, axis=0)
+      val_mean = np.mean(val_loss, axis=0)
+      val_std = np.std(val_loss, axis=0)
+
+      epochs = np.arange(1, len(train_mean)+1)
+      n_seeds = train_loss.shape[0]
+
+      # Compute confidence intervals (95% CI)
+      ci_multiplier = 1.96 / np.sqrt(n_seeds)
+      train_ci = ci_multiplier * train_std
+      val_ci = ci_multiplier * val_std
+
+      # Plotting
+      plt.figure(figsize=figsize)
+      plt.plot(epochs, train_mean, label='Training Loss', color='blue')
+      plt.fill_between(epochs, train_mean - train_ci, train_mean + train_ci, color='blue', alpha=0.2)
+
+      plt.plot(epochs, val_mean, label='Validation Loss', color='red')
+      plt.fill_between(epochs, val_mean - val_ci, val_mean + val_ci, color='red', alpha=0.2)
+
+      plt.xlabel('Epochs')
+      plt.ylabel('Loss')
+      plt.title(title)
+      plt.legend(title=legend_text)
+      plt.grid(True)
+      plt.show()
+
+def plot_accuracy(train_accuracies, val_accuracies, title='Accuracy Plot with Confidence Intervals', legend_text='XX', figsize=(8,4)):
+      # Compute mean and standard deviation
+      train_mean = np.mean(train_accuracies, axis=0)
+      train_std = np.std(train_accuracies, axis=0)
+      val_mean = np.mean(val_accuracies, axis=0)
+      val_std = np.std(val_accuracies, axis=0)
+
+      epochs = np.arange(1, len(train_mean)+1)
+      n_seeds = train_accuracies.shape[0]
+
+      # Compute confidence intervals (95% CI)
+      ci_multiplier = 1.96 / np.sqrt(n_seeds)
+      train_ci = ci_multiplier * train_std
+      val_ci = ci_multiplier * val_std
+
+      # Plotting
+      plt.figure(figsize=figsize)
+      plt.plot(epochs, train_mean, label='Training Accuracy', color='blue')
+      plt.fill_between(epochs, train_mean - train_ci, train_mean + train_ci, color='blue', alpha=0.2)
+
+      plt.plot(epochs, val_mean, label='Validation Accuracy', color='red')
+      plt.fill_between(epochs, val_mean - val_ci, val_mean + val_ci, color='red', alpha=0.2)
+
+      plt.xlabel('Epochs')
+      plt.ylabel('Accuracy')
+      plt.title(title)
+      plt.legend(title=legend_text)
+      plt.grid(True)
+      plt.show()
