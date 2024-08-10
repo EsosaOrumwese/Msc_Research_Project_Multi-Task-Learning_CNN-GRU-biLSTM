@@ -347,6 +347,22 @@ class biLSTM_engine:
             print(f'Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%')
             return test_loss, test_accuracy
       
+      def test_return_pred(self, test_loader):
+            '''Returns predictions as probabilites and the true label'''
+            self.model.eval()
+            all_probs = []
+            all_labels = []
+
+            with torch.no_grad():
+                  for features, labels in test_loader:
+                        features, labels = features.to(self.device), labels.to(self.device)
+                        outputs = self.model(features)
+                        probs = torch.softmax(outputs, dim=1)  # Get probabilities for each class
+                        all_probs.extend(probs.cpu().numpy())
+                        all_labels.extend(labels.cpu().numpy())
+
+            return np.array(all_probs), np.array(all_labels)
+      
       def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
             '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
             the original test set which the model hasn't seen. Model state, optimizer state and scheduler state needs to be loaded from last
@@ -510,6 +526,22 @@ class ResNet50_GRU_engine:
             print(f'Test Accuracy: {test_accuracy}')
 
             return test_accuracy
+
+      def test_return_pred(self, test_loader):
+            '''Returns predictions as probabilites and the true label'''
+            self.model.eval()
+            all_probs = []
+            all_labels = []
+
+            with torch.no_grad():
+                  for features, labels in test_loader:
+                        features, labels = features.to(self.device), labels.to(self.device)
+                        outputs = self.model(features)
+                        probs = torch.softmax(outputs, dim=1)  # Get probabilities for each class
+                        all_probs.extend(probs.cpu().numpy())
+                        all_labels.extend(labels.cpu().numpy())
+
+            return np.array(all_probs), np.array(all_labels)
 
       def train_endgame(self, val_loader, test_loader, epochs, save_path=None):
             '''Trains the model on the validation and test set after training on main training set is complete. This is because, I still have
@@ -756,6 +788,31 @@ class MTL_engine:
                   f'Test Driver Accuracy: {test_accuracy_driver:.2f}%')
 
             return test_loss, test_accuracy_transport, test_accuracy_driver
+      
+      def test_return_pred(self, test_loader):
+            '''Returns predictions as probabilites and the true label'''
+            self.model.eval()
+            all_probs_drv, all_labels_drv = [], []
+            all_probs_trp, all_labels_trp = [], []
+
+            with torch.no_grad():
+                  for batch in test_loader:
+                        sequences = batch['sequences'].to(self.device)
+                        seq_labels = batch['seq_labels'].to(self.device)
+                        feature_maps = batch['feature_maps'].to(self.device)
+                        fmap_labels = batch['fmap_labels'].to(self.device)
+
+                        transport_out, driver_out = self.model(sequences, feature_maps)
+
+                        probs_trp = torch.softmax(transport_out, dim=1)
+                        probs_drv = torch.softmax(driver_out, dim=1)
+
+                        all_probs_trp.extend(probs_trp.cpu().numpy())
+                        all_labels_trp.extend(seq_labels.cpu().numpy())
+                        all_probs_drv.extend(probs_drv.cpu().numpy())
+                        all_labels_drv.extend(fmap_labels.cpu().numpy())
+
+            return np.array(all_probs_trp), np.array(all_labels_trp), np.array(all_probs_drv), np.array(all_labels_drv)
       
       def train_endgame(self, val_loader, test_loader, epochs, alpha=1.0, beta=1.0, save_path=None):
             train_loss_history = []
