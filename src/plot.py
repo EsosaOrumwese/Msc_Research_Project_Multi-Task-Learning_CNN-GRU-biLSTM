@@ -148,8 +148,9 @@ class MTL_plot:
 #### Metric Plots ######
 def plot_precRec_curve(precision, recall, class_labels, num_classes, title="Precision-Recall Curve", figsize=(8,4)):
       '''Plot precision and curve'''
-      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
-
+      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b",
+              "#e377c2", "#7f7f7f", "#17becf", "#bcbd22", "#e6ab02"]
+      
       # Plot Precision-Recall curve
       plt.figure(figsize=figsize)
       for i in range(num_classes):
@@ -164,7 +165,8 @@ def plot_precRec_curve(precision, recall, class_labels, num_classes, title="Prec
 
 def plot_F1rec_curve(recall, f1_scores, class_labels, num_classes, title="F1-Score vs. Recall", figsize=(8,4)):
       '''Plots F1-Recall curve'''
-      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+      cmap = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b",
+              "#e377c2", "#7f7f7f", "#17becf", "#bcbd22", "#e6ab02"]
 
       # Plot F1-Score curve
       plt.figure(figsize=figsize)
